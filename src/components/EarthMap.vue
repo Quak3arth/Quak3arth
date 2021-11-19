@@ -8,13 +8,20 @@
 </template>
 
 <script>
-var THREE = require('three')
 
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+var THREE = require('three')
 export default {
   name: 'EarthMap',
   data: () => ({
     earthMapHeight: undefined,
-    earthMapWidth: undefined
+    earthMapWidth: undefined,
+    scene: undefined,
+    camera: undefined,
+    renderer: undefined,
+    group: undefined,
+    light: undefined,
+    controls: undefined
   }),
   mounted () {
     var elementResizeDetectorMaker = require('element-resize-detector')
@@ -31,15 +38,57 @@ export default {
   },
   methods: {
     renderEarth (elementDOM) {
-      var scene = new THREE.Scene()
-      var camera = new THREE.PerspectiveCamera(45, this.earthMapWidth / this.earthMapHeight, 0.1, 2000)
-      var renderer = new THREE.WebGLRenderer({ canvas: elementDOM, alpha: true, antialias: true })
-      var group = new THREE.Group()
-      // renderer.setClearColor('#b9d3ff')
-      renderer.shadowMap.enabled = true
-      renderer.setSize(this.earthMapWidth, this.earthMapHeight)
-      camera.position.z = 600
-      // scene.add(new THREE.AmbientLight(0x666666))
+      let scene, camera, renderer, group, light, controls
+      const initRenderer = (elementDOM) => {
+        renderer = new THREE.WebGLRenderer({ canvas: elementDOM, alpha: true, antialias: true })
+        renderer.shadowMap.enabled = true
+        renderer.setSize(this.earthMapWidth, this.earthMapHeight)
+        this.renderer = renderer
+      }
+
+      const initCamera = () => {
+        camera = new THREE.PerspectiveCamera(45, this.earthMapWidth / this.earthMapHeight, 0.1, 2000)
+        camera.position.z = 300
+        this.camera = camera
+      }
+
+      const initScene = () => {
+        scene = new THREE.Scene()
+        scene.background = new THREE.Color('#020924')
+        scene.fog = new THREE.Fog('#020924', 200, 1000)
+        this.scene = scene
+      }
+
+      const initGroup = () => {
+        group = new THREE.Group()
+        this.group = group
+      }
+
+      const initLight = () => {
+        light = new THREE.AmbientLight('#666666')
+        this.light = light
+      }
+
+      const initControls = () => {
+        controls = new OrbitControls(camera, renderer.domElement)
+        // controls.enableDamping = true
+        controls.enableZoom = true
+        controls.enablePan = true
+        controls.enableRotate = true
+        controls.autoRotateSpeed = 2
+        this.controls = controls
+      }
+
+      const rendering = () => {
+        renderer.clear()
+        renderer.render(scene, camera)
+      }
+      initRenderer(elementDOM)
+      initCamera()
+      initScene()
+      initGroup()
+      initLight()
+      initControls()
       var earthTexture = require('@/assets/map.jpg')
       var geometry = new THREE.SphereGeometry(100, 1000, 1000) // 球体
       var material = new THREE.MeshBasicMaterial({
@@ -50,9 +99,11 @@ export default {
       group.add(mesh)
       scene.add(group)
       var animate = function () {
+        if (controls) {
+          controls.update()
+        }
+        rendering()
         requestAnimationFrame(animate)
-        group.rotation.y += 0.002
-        renderer.render(scene, camera)
       }
       animate()
     }
