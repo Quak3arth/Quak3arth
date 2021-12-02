@@ -1,6 +1,6 @@
-export { lglt2xyz }
+export { BLH2XYZ }
 
-function lglt2xyz (lng, lat, radius) {
+function BLH2XYZ (lng, lat, radius) {
   const phi = (180 + lng) * (Math.PI / 180)
   const theta = (90 - lat) * (Math.PI / 180)
   return {

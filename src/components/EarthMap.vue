@@ -10,8 +10,7 @@
 <script>
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { lglt2xyz } from '@/plugins/utils'
-import earthTexture from '@/assets/earth2.jpg'
+import { BLH2XYZ } from '@/plugins/utils'
 
 var THREE = require('three')
 export default {
@@ -25,7 +24,9 @@ export default {
     earthGroup: undefined,
     lightGroup: undefined,
     controls: undefined,
-    earthMesh: undefined
+    earthMesh: undefined,
+    earthRadius: 6371,
+    quakeGroup: undefined
   }),
   mounted () {
     this.earthMapHeight = this.$el.offsetHeight
@@ -55,15 +56,15 @@ export default {
       return renderer
     },
     initCamera () {
-      const camera = new THREE.PerspectiveCamera(45, this.earthMapWidth / this.earthMapHeight, 0.1, 2000)
-      camera.position.z = 300
+      const camera = new THREE.PerspectiveCamera(45, this.earthMapWidth / this.earthMapHeight, 0.1, 10 * this.earthRadius)
+      camera.position.z = 3 * this.earthRadius
       this.camera = camera
       return camera
     },
     initScene () {
       const scene = new THREE.Scene()
       scene.background = new THREE.Color('#020924')
-      scene.fog = new THREE.Fog('#020924', 200, 1000)
+      // scene.fog = new THREE.Fog('#020924', 200, 1000)
       this.scene = scene
       return scene
     },
@@ -100,9 +101,13 @@ export default {
       const controls = new OrbitControls(this.camera, this.renderer.domElement)
       controls.enableZoom = true
       controls.enablePan = true
-      controls.enableRotate = true
-      controls.autoRotateSpeed = 2
+      controls.autoRotate = true
+      controls.autoRotateSpeed = 1
+      console.log(controls)
       this.controls = controls
+      // controls.addEventListener('change', function () {
+      //   console.log('change')
+      // })
       return controls
     },
     initBackground () {
@@ -128,7 +133,7 @@ export default {
     },
     initEarth () {
       var earthTexture = require('@/assets/earth2.jpg')
-      var geometry = new THREE.SphereGeometry(100, 1000, 1000) // 球体
+      var geometry = new THREE.SphereGeometry(this.earthRadius, 1000, 2000) // 球体
       var material = new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load(earthTexture),
         transparent: true
@@ -139,23 +144,30 @@ export default {
     },
     animate () {
       if (this.controls) {
+        // console.log('ok')
         this.controls.update()
       }
       this.rendering()
       requestAnimationFrame(this.animate)
     },
     renderEarth (elementDOM) {
-      let scene, camera, renderer, earthGroup, lightGroup, controls
-      renderer = this.initRenderer(elementDOM)
-      camera = this.initCamera()
-      scene = this.initScene()
-      earthGroup = this.initEarthGroup()
-      lightGroup = this.initLightGroup()
+      const renderer = this.initRenderer(elementDOM)
+      const camera = this.initCamera()
+      const scene = this.initScene()
+      const earthGroup = this.initEarthGroup()
+      const lightGroup = this.initLightGroup()
       scene.add(lightGroup)
-      controls = this.initControls()
+      const controls = this.initControls()
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
+    },
+    initQuakeGroup () {
+      if (this.quakeGroup) {
+        this.quakeGroup.clear()
+      } else {
+        this.quakeGroup = new THREE.Group()
+      }
     }
   }
 }
