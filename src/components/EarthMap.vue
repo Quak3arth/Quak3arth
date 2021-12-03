@@ -201,11 +201,21 @@ export default {
         cymesh: cymesh
       }
     },
-    initQuakeGroup () {
+    initQuakeGroup (earthQuakeArray, r) {
       if (this.quakeGroup) {
         this.quakeGroup.clear()
       } else {
         this.quakeGroup = new THREE.Group()
+      }
+      for (var i = 0; i < earthQuakeArray.length; i++) {
+        if (i >= 10) {
+          break
+        }
+        var lat = earthQuakeArray[i].location.latitude
+        var lng = earthQuakeArray[i].location.longitude
+        var position = BLH2XYZ(lng, lat, r)
+        var lightColumnMesh1 = this.getQuakeLabelMesh(position, r)
+        var lightColumnMesh2 = this.getQuakeLabe
       }
     }
   }
