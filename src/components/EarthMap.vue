@@ -12,6 +12,7 @@
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { BLH2XYZ } from '@/plugins/utils'
 import earthquakeJson from '@/assets/earthquake_v1.json'
+import earthTexture from '@/assets/earth2.jpg'
 var THREE = require('three')
 export default {
   name: 'EarthMap',
@@ -171,8 +172,34 @@ export default {
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
     },
-    getQuakeLabel () {
-
+    getQuakeLabelMesh (position, radius) {
+      var material = new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load(require('@/assets/label.png')),
+        transparent: true,
+        depthWrite: false
+      })
+      var planeGeometry = new THREE.PlaneGeometry(10, 10)
+      var mesh = new THREE.Mesh(planeGeometry, material)
+      var size = radius * 0.04
+      mesh.scale.set(size, size, size)
+      mesh.position.set(position.x, position.y, position.z)
+      var cyplane = new THREE.PlaneGeometry(6, 20)
+      var cymaterial = new THREE.MeshPhongMaterial({
+        map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
+        side: THREE.DoubleSide,
+        transparent: true
+      })
+      var cymesh = new THREE.Mesh(cyplane, cymaterial)
+      cymesh.scale.set(size, size, size)
+      cymesh.position.set(position.x, position.y, position.z)
+      var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
+      var normalXYZ = new THREE.Vector3(0, 0, 1)
+      mesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      cymesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      return {
+        mesh: mesh,
+        cymesh: cymesh
+      }
     },
     initQuakeGroup () {
       if (this.quakeGroup) {
