@@ -11,7 +11,7 @@
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { BLH2XYZ } from '@/plugins/utils'
-
+import earthquakeJson from '@/assets/earthquake_v1.json'
 var THREE = require('three')
 export default {
   name: 'EarthMap',
@@ -28,6 +28,12 @@ export default {
     earthRadius: 6371,
     quakeGroup: undefined
   }),
+  props: {
+    jsonData: {
+      type: Array,
+      default: () => { return earthquakeJson }
+    }
+  },
   mounted () {
     this.earthMapHeight = this.$el.offsetHeight
     this.earthMapWidth = this.$el.offsetWidth
@@ -41,6 +47,9 @@ export default {
       that.earthMapHeight = element.offsetHeight
       that.renderResize()
     })
+  },
+  created () {
+    // console.log(this.jsonData)
   },
   methods: {
     renderResize () {
@@ -103,7 +112,7 @@ export default {
       controls.enablePan = true
       controls.autoRotate = true
       controls.autoRotateSpeed = 1
-      console.log(controls)
+      // console.log(controls)
       this.controls = controls
       // controls.addEventListener('change', function () {
       //   console.log('change')
@@ -161,6 +170,9 @@ export default {
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
+    },
+    getQuakeLabel () {
+
     },
     initQuakeGroup () {
       if (this.quakeGroup) {
