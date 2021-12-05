@@ -12,8 +12,7 @@
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { BLH2XYZ } from '@/plugins/utils'
 import earthquakeJson from '@/assets/earthquake_v1.json'
-import earthTexture from '@/assets/earth2.jpg'
-import elementResizeDetectorMaker from 'element-resize-detector'
+
 var THREE = require('three')
 export default {
   name: 'EarthMap',
@@ -55,7 +54,7 @@ export default {
   },
   methods: {
     renderResize () {
-      console.log(this.camera)
+      // console.log(this.camera)
       this.camera.aspect = this.earthMapWidth / this.earthMapHeight
       this.camera.updateProjectionMatrix()
       this.renderer.setSize(this.earthMapWidth, this.earthMapHeight)
@@ -145,7 +144,7 @@ export default {
     },
     initEarth () {
       var earthTexture = require('@/assets/earth2.jpg')
-      var geometry = new THREE.SphereGeometry(this.earthRadius, 1000, 2000) // 球体
+      var geometry = new THREE.SphereGeometry(this.earthRadius, 2000, 2000) // 球体
       var material = new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load(earthTexture),
         transparent: true
@@ -156,7 +155,6 @@ export default {
     },
     animate () {
       if (this.controls) {
-        // console.log('ok')
         this.controls.update()
       }
       this.rendering()
@@ -173,37 +171,44 @@ export default {
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
-      const quakeGroup = this.initQuakeGroup(this.jsonData, this.earthRadius + 100)
+      const quakeGroup = this.initQuakeGroup(this.jsonData, 1.005 * this.earthRadius)
       scene.add(quakeGroup)
     },
-    getQuakeLabelMesh (position, radius) {
+    getQuakeLabelMesh (position, magnitude, radius = this.earthRadius) {
       var material = new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load(require('@/assets/label.png')),
         transparent: true,
         side: THREE.DoubleSide,
         depthWrite: false
       })
-      var planeGeometry = new THREE.PlaneGeometry(10, 10)
+      var planeGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
       var mesh = new THREE.Mesh(planeGeometry, material)
-      var size = radius * 0.04
-      mesh.scale.set(size, size, size)
+      // var size = magnitude * 0.04
+      // mesh.scale.set(size, size, size)
       mesh.position.set(position.x, position.y, position.z)
-      // var cyplane = new THREE.PlaneGeometry(6, 20)
-      // var cymaterial = new THREE.MeshPhongMaterial({
-      //   map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
-      //   side: THREE.DoubleSide,
-      //   transparent: true
-      // })
-      // var cymesh = new THREE.Mesh(cyplane, cymaterial)
-      // cymesh.scale.set(size, size, size)
-      // cymesh.position.set(position.x, position.y, position.z)
+      var lightCylinderPlane = new THREE.PlaneGeometry(0.004 * radius * magnitude, 0.01 * radius * magnitude)
+      lightCylinderPlane.rotateX(Math.PI / 2)
+      lightCylinderPlane.translate(0, 0, 0.004 * radius * magnitude)
+      var lightCylinderMaterial = new THREE.MeshBasicMaterial(
+        {
+          map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
+          color: 0x44ffaa,
+          transparent: true,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        }
+      )
+      var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
+      var lightCylinderGroup = new THREE.Group()
+      lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
+      lightCylinderGroup.position.set(position.x, position.y, position.z)
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
       var normalXYZ = new THREE.Vector3(0, 0, 1)
       mesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
-      // cymesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
       return {
-        mesh: mesh
-        // cymesh: cymesh
+        label: mesh,
+        lightCylinder: lightCylinderGroup
       }
     },
     initQuakeGroup (earthQuakeArray, r) {
@@ -219,8 +224,8 @@ export default {
         var lat = earthQuakeArray[i].location.latitude
         var lng = earthQuakeArray[i].location.longitude
         var position = BLH2XYZ(lng, lat, r)
-        const { mesh } = this.getQuakeLabelMesh(position, this.earthRadius)
-        this.quakeGroup.add(mesh)
+        const { label, lightCylinder } = this.getQuakeLabelMesh(position, 4)
+        this.quakeGroup.add(label, lightCylinder)
       }
       return this.quakeGroup
     }
