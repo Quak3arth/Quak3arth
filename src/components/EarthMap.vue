@@ -27,7 +27,8 @@ export default {
     controls: undefined,
     earthMesh: undefined,
     earthRadius: 6371,
-    quakeGroup: undefined
+    quakeGroup: undefined,
+    waveList: undefined
   }),
   props: {
     jsonData: {
@@ -114,11 +115,7 @@ export default {
       controls.enablePan = true
       controls.autoRotate = true
       controls.autoRotateSpeed = 1
-      // console.log(controls)
       this.controls = controls
-      // controls.addEventListener('change', function () {
-      //   console.log('change')
-      // })
       return controls
     },
     initBackground () {
@@ -157,6 +154,7 @@ export default {
       if (this.controls) {
         this.controls.update()
       }
+      this.waveSpread()
       this.rendering()
       requestAnimationFrame(this.animate)
     },
@@ -171,21 +169,38 @@ export default {
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
-      const quakeGroup = this.initQuakeGroup(this.jsonData, 1.005 * this.earthRadius)
+      const quakeGroup = this.initQuakeGroup(this.jsonData, this.earthRadius)
       scene.add(quakeGroup)
     },
-    getQuakeLabelMesh (position, magnitude, radius = this.earthRadius) {
-      var material = new THREE.MeshBasicMaterial({
+    waveSpread () {
+      if (this.waveList) {
+        this.waveList.forEach(
+          (wave) => {
+            wave._ratio += 0.007
+            wave.scale.set(wave._ratio, wave._ratio, wave._ratio)
+            if (wave._ratio <= 1.5) {
+              wave.material.opacity = (wave._ratio - 1) * 2
+            } else if (wave._ratio <= 2) {
+              wave.material.opacity = 1 - (wave._ratio - 1.5) * 2
+            } else {
+              wave._ratio = 1.0
+            }
+          }
+        )
+      }
+    },
+    getQuakeLabel (position, magnitude, radius = this.earthRadius) {
+      // point label
+      var pointMaterial = new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load(require('@/assets/label.png')),
         transparent: true,
         side: THREE.DoubleSide,
         depthWrite: false
       })
       var planeGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
-      var mesh = new THREE.Mesh(planeGeometry, material)
-      // var size = magnitude * 0.04
-      // mesh.scale.set(size, size, size)
-      mesh.position.set(position.x, position.y, position.z)
+      var pointMesh = new THREE.Mesh(planeGeometry, pointMaterial)
+      pointMesh.position.set(position.x, position.y, position.z)
+      // light cylinder
       var lightCylinderPlane = new THREE.PlaneGeometry(0.004 * radius * magnitude, 0.01 * radius * magnitude)
       lightCylinderPlane.rotateX(Math.PI / 2)
       lightCylinderPlane.translate(0, 0, 0.004 * radius * magnitude)
@@ -202,30 +217,51 @@ export default {
       var lightCylinderGroup = new THREE.Group()
       lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
       lightCylinderGroup.position.set(position.x, position.y, position.z)
+      // wave
+      var waveMaterial = new THREE.MeshBasicMaterial(
+        {
+          color: 0x22ffcc,
+          map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
+          transparent: true,
+          opacity: 1.0,
+          depthWrite: false
+        }
+      )
+      var waveGeometry = new THREE.PlaneGeometry(0.01 * radius * magnitude, 0.01 * radius * magnitude)
+      var waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
+      waveMesh.position.set(position.x, position.y, position.z)
+      waveMesh._ratio = 1.0 + Math.random() * 1.0
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
       var normalXYZ = new THREE.Vector3(0, 0, 1)
-      mesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      pointMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
       lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      waveMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
       return {
-        label: mesh,
-        lightCylinder: lightCylinderGroup
+        label: pointMesh,
+        lightCylinder: lightCylinderGroup,
+        wave: waveMesh
       }
     },
-    initQuakeGroup (earthQuakeArray, r) {
+    initQuakeGroup (earthQuakeArray, radius = this.earthRadius) {
       if (this.quakeGroup) {
         this.quakeGroup.clear()
       } else {
         this.quakeGroup = new THREE.Group()
       }
+      this.waveList = []
       for (var i = 0; i < earthQuakeArray.length; i++) {
         if (i >= 10) {
           break
         }
         var lat = earthQuakeArray[i].location.latitude
         var lng = earthQuakeArray[i].location.longitude
-        var position = BLH2XYZ(lng, lat, r)
-        const { label, lightCylinder } = this.getQuakeLabelMesh(position, 4)
-        this.quakeGroup.add(label, lightCylinder)
+        var magnitude = earthQuakeArray[i].magnitude
+        var position = BLH2XYZ(lng, lat, radius * 1.005)
+        const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
+        var earthquake = new THREE.Group()
+        earthquake.add(label, lightCylinder, wave)
+        this.waveList.push(wave)
+        this.quakeGroup.add(earthquake)
       }
       return this.quakeGroup
     }
