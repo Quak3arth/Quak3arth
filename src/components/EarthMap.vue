@@ -141,12 +141,12 @@ export default {
     },
     initEarth () {
       var earthTexture = require('@/assets/earth2.jpg')
-      var geometry = new THREE.SphereGeometry(this.earthRadius, 2000, 2000) // 球体
-      var material = new THREE.MeshBasicMaterial({
+      var earthGeometry = new THREE.SphereGeometry(this.earthRadius, 2000, 2000) // 球体
+      var earthMaterial = new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load(earthTexture),
         transparent: true
       })
-      var mesh = new THREE.Mesh(geometry, material)
+      var mesh = new THREE.Mesh(earthGeometry, earthMaterial)
       this.earthMesh = mesh
       return mesh
     },
@@ -197,8 +197,8 @@ export default {
         side: THREE.DoubleSide,
         depthWrite: false
       })
-      var planeGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
-      var pointMesh = new THREE.Mesh(planeGeometry, pointMaterial)
+      var pointGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
+      var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
       pointMesh.position.set(position.x, position.y, position.z)
       // light cylinder
       var lightCylinderPlane = new THREE.PlaneGeometry(0.004 * radius * magnitude, 0.01 * radius * magnitude)
