@@ -24,6 +24,7 @@ var earthMesh
 var quakeGroup
 var waveList
 var focusedEarthquake = []
+var selectedEarthquake = []
 export default {
   name: 'earthMap',
   data: () => ({
@@ -42,7 +43,7 @@ export default {
     this.earthMapWidth = this.$el.offsetWidth
     this.renderEarth(this.$refs.earth)
     var earthDOM = this.$refs.earth
-    const getIntersectObjects = (event) => {
+    const getIntersectEarthquake = (event) => {
       event.preventDefault()
       var rect = earthDOM.getBoundingClientRect()
       var raycaster = new THREE.Raycaster()
@@ -85,7 +86,7 @@ export default {
       return intersectObjects.length > 0
     }
     this.$refs.earth.addEventListener('click', (event) => {
-      console.log(getIntersectObjects(event))
+      // console.log(getIntersectEarthquake(event))
     })
     // this.$refs.earth.addEventListener('mouseover', (event) => {
     //   event.preventDefault()
@@ -99,6 +100,7 @@ export default {
     this.$refs.earth.addEventListener('mousemove', (event) => {
       if (testOnEarth(event)) {
         controls.autoRotate = false
+        const nowHoverEarthquakeArray = getIntersectEarthquake(event)
       } else {
         controls.autoRotate = true
       }
