@@ -10,6 +10,12 @@
 <script>
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass'
+
 import { BLH2XYZ } from '@/plugins/utils'
 import earthquakeJson from '@/assets/earthquake_v1.json'
 
@@ -25,6 +31,12 @@ var quakeGroup
 var waveList
 var focusedEarthquake = []
 var selectedEarthquake = []
+var composer
+var renderPass
+var outlinePass
+var effectFXAA
+var selectedObjects
+var mouseDown = false
 export default {
   name: 'earthMap',
   data: () => ({
@@ -85,7 +97,7 @@ export default {
       var intersectObjects = raycaster.intersectObject(earthMesh)
       return intersectObjects.length > 0
     }
-    this.$refs.earth.addEventListener('click', (event) => {
+    this.$refs.earth.addEventListener('dblclick', (event) => {
       // console.log(getIntersectEarthquake(event))
     })
     // this.$refs.earth.addEventListener('mouseover', (event) => {
@@ -96,14 +108,39 @@ export default {
     //   event.preventDefault()
     //   controls.autoRotate = true
     // })
-
+    const highlight = (obj) => {
+      if (obj.material) {
+        obj.material.originColor = obj.material.color
+        obj.material.color = new THREE.Color(1, 1, 1)
+      }
+      if (obj.children) {
+        for (const child of obj.children) {
+          highlight(child)
+        }
+      }
+    }
     this.$refs.earth.addEventListener('mousemove', (event) => {
+      event.preventDefault()
       if (testOnEarth(event)) {
         controls.autoRotate = false
-        const nowHoverEarthquakeArray = getIntersectEarthquake(event)
+        if (!mouseDown) {
+          const nowHoverEarthquakeArray = getIntersectEarthquake(event)
+          for (const earthquake of nowHoverEarthquakeArray) {
+            highlight(earthquake)
+          }
+          // outlinePass.selectedObjects = nowHoverEarthquakeArray
+        }
       } else {
         controls.autoRotate = true
       }
+    })
+    this.$refs.earth.addEventListener('mousedown', (event) => {
+      // console.log('down')
+      mouseDown = true
+    })
+    this.$refs.earth.addEventListener('mouseup', (event) => {
+      // console.log('up')
+      mouseDown = false
     })
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
@@ -119,11 +156,35 @@ export default {
     // console.log(this.jsonData)
   },
   methods: {
+    initComposer () {
+      composer = new EffectComposer(renderer)
+      composer.addPass(new RenderPass(scene, camera))
+      effectFXAA = new ShaderPass(FXAAShader)
+      effectFXAA.uniforms.resolution.value.set(1 / this.earthMapWidth, 1 / this.earthMapHeight)
+      effectFXAA.renderToScreen = true
+      composer.addPass(effectFXAA)
+    },
+    initOutline () {
+      outlinePass = new OutlinePass(new THREE.Vector2(this.earthMapWidth, this.earthMapHeight), scene, camera, [])
+      outlinePass.selectedObjects = []
+      outlinePass.edgeStrength = 1.0 // 边框的亮度
+      outlinePass.edgeGlow = 0.2 // 光晕[0,1]
+      outlinePass.usePatternTexture = true // 是否使用父级的材质
+      outlinePass.edgeThickness = 0 // 边框宽度
+      outlinePass.downSampleRatio = 2 // 边框弯曲度
+      outlinePass.pulsePeriod = 5 // 呼吸闪烁的速度
+      outlinePass.visibleEdgeColor.set('#ffffff') // 呼吸显示的颜色
+      outlinePass.hiddenEdgeColor = new THREE.Color(0, 0, 0) // 呼吸消失的颜色
+      outlinePass.clear = true
+      composer.addPass(outlinePass)
+    },
     renderResize () {
       // console.log(this.camera)
       camera.aspect = this.earthMapWidth / this.earthMapHeight
       camera.updateProjectionMatrix()
       renderer.setSize(this.earthMapWidth, this.earthMapHeight)
+      effectFXAA.uniforms.resolution.value.set(1 / this.earthMapWidth, 1 / this.earthMapHeight)
+      // outlinePass.resolution = new THREE.Vector2(this.earthMapWidth, this.earthMapHeight)
     },
     initRenderer (elementDOM) {
       renderer = new THREE.WebGLRenderer({ canvas: elementDOM, alpha: true, antialias: true })
@@ -195,8 +256,7 @@ export default {
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3))
     },
     rendering () {
-      renderer.clear()
-      renderer.render(scene, camera)
+      composer.render()
     },
     initEarth () {
       var earthTexture = require('@/assets/earth2.jpg')
@@ -230,6 +290,8 @@ export default {
       earthGroup.add(earthMesh)
       const quakeGroup = this.initQuakeGroup(this.jsonData, this.earthRadius)
       scene.add(quakeGroup)
+      this.initComposer()
+      // this.initOutline()
     },
     waveSpread () {
       if (waveList) {
@@ -292,7 +354,7 @@ export default {
       var waveGeometry = new THREE.PlaneGeometry(0.01 * radius * magnitude, 0.01 * radius * magnitude)
       var waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
       waveMesh.position.set(position.x, position.y, position.z)
-      waveMesh._ratio = 1.0 + Math.random() * 1.0
+      waveMesh._ratio = 1.0 + Math.random()
       waveMesh.name = 'wave'
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
       var normalXYZ = new THREE.Vector3(0, 0, 1)
