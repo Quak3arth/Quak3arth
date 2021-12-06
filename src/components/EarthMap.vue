@@ -23,6 +23,7 @@ var controls
 var earthMesh
 var quakeGroup
 var waveList
+var focusedEarthquake = []
 export default {
   name: 'earthMap',
   data: () => ({
@@ -55,10 +56,52 @@ export default {
       if (camera) {
         raycaster.setFromCamera(mouse, camera)
       }
-      return raycaster.intersectObjects(quakeGroup.children)
+      var intersectObjects = raycaster.intersectObjects(quakeGroup.children)
+      var earthquake = []
+      for (const obj of intersectObjects) {
+        if (obj.object.name === 'point' || obj.object.name === 'wave') {
+          earthquake.push(obj.object.parent)
+        } else if (obj.object.name === 'lightCylinder') {
+          earthquake.push(obj.object.parent.parent)
+        }
+      }
+      return [...new Set(earthquake)]
+    }
+    const testOnEarth = (event) => {
+      event.preventDefault()
+      var rect = earthDOM.getBoundingClientRect()
+      var raycaster = new THREE.Raycaster()
+      raycaster.near = 0.8 * this.earthRadius
+      raycaster.far = 4.2 * this.earthRadius
+      var mouse = new THREE.Vector2()
+      var x = event.clientX - rect.left * (earthDOM.width / rect.width)
+      var y = event.clientY - rect.top * (earthDOM.height / rect.height)
+      mouse.x = (x / earthDOM.width) * 2 - 1
+      mouse.y = -(y / earthDOM.height) * 2 + 1
+      if (camera) {
+        raycaster.setFromCamera(mouse, camera)
+      }
+      var intersectObjects = raycaster.intersectObject(earthMesh)
+      return intersectObjects.length > 0
     }
     this.$refs.earth.addEventListener('click', (event) => {
       console.log(getIntersectObjects(event))
+    })
+    // this.$refs.earth.addEventListener('mouseover', (event) => {
+    //   event.preventDefault()
+    //   controls.autoRotate = false
+    // })
+    // this.$refs.earth.addEventListener('mouseout', (event) => {
+    //   event.preventDefault()
+    //   controls.autoRotate = true
+    // })
+
+    this.$refs.earth.addEventListener('mousemove', (event) => {
+      if (testOnEarth(event)) {
+        controls.autoRotate = false
+      } else {
+        controls.autoRotate = true
+      }
     })
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
@@ -233,6 +276,7 @@ export default {
       var lightCylinderGroup = new THREE.Group()
       lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
       lightCylinderGroup.position.set(position.x, position.y, position.z)
+      lightCylinderGroup.name = 'lightCylinderGroup'
       // wave
       var waveMaterial = new THREE.MeshBasicMaterial(
         {
@@ -277,6 +321,8 @@ export default {
         const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
         var earthquake = new THREE.Group()
         earthquake.add(label, lightCylinder, wave)
+        earthquake.name = 'earthquake'
+        earthquake.info = earthQuakeArray[i]
         waveList.push(wave)
         quakeGroup.add(earthquake)
       }
