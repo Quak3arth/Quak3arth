@@ -11,7 +11,6 @@
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { BLH2XYZ } from '@/plugins/utils'
-import { getEarthquakeRelations } from '@/plugins/utils'
 import earthquakeJson from '@/assets/earthquake_v1.json'
 
 var THREE = require('three')
