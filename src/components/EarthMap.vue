@@ -14,21 +14,21 @@ import { BLH2XYZ } from '@/plugins/utils'
 import earthquakeJson from '@/assets/earthquake_v1.json'
 
 var THREE = require('three')
+var camera
+var renderer
+var scene
+var earthGroup
+var lightGroup
+var controls
+var earthMesh
+var quakeGroup
+var waveList
 export default {
-  name: 'EarthMap',
+  name: 'earthMap',
   data: () => ({
     earthMapHeight: undefined,
     earthMapWidth: undefined,
-    scene: undefined,
-    camera: undefined,
-    renderer: undefined,
-    earthGroup: undefined,
-    lightGroup: undefined,
-    controls: undefined,
-    earthMesh: undefined,
-    earthRadius: 6371,
-    quakeGroup: undefined,
-    waveList: undefined
+    earthRadius: 640
   }),
   props: {
     jsonData: {
@@ -40,6 +40,26 @@ export default {
     this.earthMapHeight = this.$el.offsetHeight
     this.earthMapWidth = this.$el.offsetWidth
     this.renderEarth(this.$refs.earth)
+    var earthDOM = this.$refs.earth
+    const getIntersectObjects = (event) => {
+      event.preventDefault()
+      var rect = earthDOM.getBoundingClientRect()
+      var raycaster = new THREE.Raycaster()
+      raycaster.near = 1.8 * this.earthRadius
+      raycaster.far = 3.2 * this.earthRadius
+      var mouse = new THREE.Vector2()
+      var x = event.clientX - rect.left * (earthDOM.width / rect.width)
+      var y = event.clientY - rect.top * (earthDOM.height / rect.height)
+      mouse.x = (x / earthDOM.width) * 2 - 1
+      mouse.y = -(y / earthDOM.height) * 2 + 1
+      if (camera) {
+        raycaster.setFromCamera(mouse, camera)
+      }
+      return raycaster.intersectObjects(quakeGroup.children)
+    }
+    this.$refs.earth.addEventListener('click', (event) => {
+      console.log(getIntersectObjects(event))
+    })
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
     var erd = elementResizeDetectorMaker()
@@ -56,37 +76,33 @@ export default {
   methods: {
     renderResize () {
       // console.log(this.camera)
-      this.camera.aspect = this.earthMapWidth / this.earthMapHeight
-      this.camera.updateProjectionMatrix()
-      this.renderer.setSize(this.earthMapWidth, this.earthMapHeight)
+      camera.aspect = this.earthMapWidth / this.earthMapHeight
+      camera.updateProjectionMatrix()
+      renderer.setSize(this.earthMapWidth, this.earthMapHeight)
     },
     initRenderer (elementDOM) {
-      const renderer = new THREE.WebGLRenderer({ canvas: elementDOM, alpha: true, antialias: true })
+      renderer = new THREE.WebGLRenderer({ canvas: elementDOM, alpha: true, antialias: true })
       renderer.shadowMap.enabled = true
       renderer.setSize(this.earthMapWidth, this.earthMapHeight)
-      this.renderer = renderer
       return renderer
     },
     initCamera () {
-      const camera = new THREE.PerspectiveCamera(45, this.earthMapWidth / this.earthMapHeight, 0.1, 10 * this.earthRadius)
+      camera = new THREE.PerspectiveCamera(45, this.earthMapWidth / this.earthMapHeight, 0.1, 10 * this.earthRadius)
       camera.position.z = 3 * this.earthRadius
-      this.camera = camera
       return camera
     },
     initScene () {
-      const scene = new THREE.Scene()
+      scene = new THREE.Scene()
       scene.background = new THREE.Color('#020924')
       // scene.fog = new THREE.Fog('#020924', 200, 1000)
-      this.scene = scene
       return scene
     },
     initEarthGroup () {
-      const earthGroup = new THREE.Group()
-      this.earthGroup = earthGroup
+      earthGroup = new THREE.Group()
       return earthGroup
     },
     initLightGroup () {
-      const lightGroup = new THREE.Group()
+      lightGroup = new THREE.Group()
       const ambientLight = new THREE.AmbientLight(0xcccccc, 1.1)
       lightGroup.add(ambientLight)
       var directionalLight = new THREE.DirectionalLight(0xffffff, 0.2)
@@ -106,16 +122,14 @@ export default {
       directionalLight3.shadow.camera.left = -52
       directionalLight3.shadow.camera.right = 12
       lightGroup.add(directionalLight3)
-      this.lightGroup = lightGroup
       return lightGroup
     },
     initControls () {
-      const controls = new OrbitControls(this.camera, this.renderer.domElement)
+      controls = new OrbitControls(camera, renderer.domElement)
       controls.enableZoom = true
       controls.enablePan = true
       controls.autoRotate = true
       controls.autoRotateSpeed = 1
-      this.controls = controls
       return controls
     },
     initBackground () {
@@ -136,8 +150,8 @@ export default {
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3))
     },
     rendering () {
-      this.renderer.clear()
-      this.renderer.render(this.scene, this.camera)
+      renderer.clear()
+      renderer.render(scene, camera)
     },
     initEarth () {
       var earthTexture = require('@/assets/earth2.jpg')
@@ -147,12 +161,12 @@ export default {
         transparent: true
       })
       var mesh = new THREE.Mesh(earthGeometry, earthMaterial)
-      this.earthMesh = mesh
+      earthMesh = mesh
       return mesh
     },
     animate () {
-      if (this.controls) {
-        this.controls.update()
+      if (controls) {
+        controls.update()
       }
       this.waveSpread()
       this.rendering()
@@ -173,8 +187,8 @@ export default {
       scene.add(quakeGroup)
     },
     waveSpread () {
-      if (this.waveList) {
-        this.waveList.forEach(
+      if (waveList) {
+        waveList.forEach(
           (wave) => {
             wave._ratio += 0.007
             wave.scale.set(wave._ratio, wave._ratio, wave._ratio)
@@ -200,6 +214,7 @@ export default {
       var pointGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
       var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
       pointMesh.position.set(position.x, position.y, position.z)
+      pointMesh.name = 'point'
       // light cylinder
       var lightCylinderPlane = new THREE.PlaneGeometry(0.004 * radius * magnitude, 0.01 * radius * magnitude)
       lightCylinderPlane.rotateX(Math.PI / 2)
@@ -214,6 +229,7 @@ export default {
         }
       )
       var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
+      lightCylinderMesh.name = 'lightCylinder'
       var lightCylinderGroup = new THREE.Group()
       lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
       lightCylinderGroup.position.set(position.x, position.y, position.z)
@@ -231,6 +247,7 @@ export default {
       var waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
       waveMesh.position.set(position.x, position.y, position.z)
       waveMesh._ratio = 1.0 + Math.random() * 1.0
+      waveMesh.name = 'wave'
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
       var normalXYZ = new THREE.Vector3(0, 0, 1)
       pointMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
@@ -243,12 +260,12 @@ export default {
       }
     },
     initQuakeGroup (earthQuakeArray, radius = this.earthRadius) {
-      if (this.quakeGroup) {
-        this.quakeGroup.clear()
+      if (quakeGroup) {
+        quakeGroup.clear()
       } else {
-        this.quakeGroup = new THREE.Group()
+        quakeGroup = new THREE.Group()
       }
-      this.waveList = []
+      waveList = []
       for (var i = 0; i < earthQuakeArray.length; i++) {
         if (i >= 10) {
           break
@@ -260,10 +277,10 @@ export default {
         const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
         var earthquake = new THREE.Group()
         earthquake.add(label, lightCylinder, wave)
-        this.waveList.push(wave)
-        this.quakeGroup.add(earthquake)
+        waveList.push(wave)
+        quakeGroup.add(earthquake)
       }
-      return this.quakeGroup
+      return quakeGroup
     }
   }
 }
