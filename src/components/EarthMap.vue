@@ -319,7 +319,7 @@ export default {
       if (controls) {
         controls.update()
       }
-      this.waveSpread()
+      // this.waveSpread()
       this.rendering()
       requestAnimationFrame(this.animate)
     },
@@ -421,7 +421,7 @@ export default {
       }
       waveList = []
       for (var i = 0; i < earthQuakeArray.length; i++) {
-        if (i >= 5000) {
+        if (i >= 1000) {
           break
         }
         var lat = earthQuakeArray[i].location.latitude

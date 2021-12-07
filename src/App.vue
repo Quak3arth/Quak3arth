@@ -84,10 +84,29 @@
           </v-date-picker>
         </v-menu>
       </v-card>
+      <v-card>
+        <v-subheader>
+          震级范围选择
+        </v-subheader>
+        <v-range-slider
+          v-model="magnitudeRange"
+          :min="4.5"
+          :max="10"
+          thumb-label
+          prepend-icon="mdi-minus"
+          append-icon="mdi-plus"
+          step="0.1"
+        ></v-range-slider>
+      </v-card>
+      <v-btn
+        block
+        color="primary"
+        @click="generateWordsText"
+      >让我康康</v-btn>
     </v-navigation-drawer>
     <v-main>
       <v-container fill-height overflow-hidden>
-        <earth-map/>
+<!--        <earth-map/>-->
       </v-container>
     </v-main>
   </v-app>
@@ -101,6 +120,7 @@ export default {
   components: { EarthMap },
   watch: {
     startDate (newValue) {
+      console.log(newValue)
       if (new Date(newValue) > new Date(this.endDate)) {
         this.endDate = newValue
       }
@@ -110,7 +130,10 @@ export default {
     startDate: '2000-01',
     startMenu: false,
     endDate: '2000-01',
-    endMenu: false
+    endMenu: false,
+    minMenu: false,
+    maxMenu: false,
+    magnitudeRange: [4.5, 9]
   }),
   computed: {
 
