@@ -15,9 +15,45 @@
         <v-icon>mdi-github</v-icon>
       </v-btn>
     </v-app-bar>
+    <v-navigation-drawer app>
+      <v-card>
+        <v-subheader>日期选择</v-subheader>
+        <v-menu
+          ref="menu"
+          v-model="startMenu"
+          :close-on-content-click="false"
+          :return-value.sync="startDate"
+          transition="scale-transition"
+          offset-y
+          full-width
+        >
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+              v-model="startDate"
+              label="开始月份"
+              prepend-icon="mdi-calendar-month"
+              readonly
+              v-bind="attrs"
+              v-on="on"
+            ></v-text-field>
+          </template>
+          <v-date-picker
+            v-model="startDate"
+            type="month"
+            locale="zh-cn"
+            no-title
+            scrollable
+          >
+            <v-spacer></v-spacer>
+            <v-btn text color="primary" @click="startMenu = false">取消</v-btn>
+            <v-btn text color="primary" @click="$refs.menu.save(startDate)">确定</v-btn>
+          </v-date-picker>
+        </v-menu>
+      </v-card>
+    </v-navigation-drawer>
     <v-main>
       <v-container fill-height overflow-hidden>
-        <router-view/>
+        <earth-map/>
       </v-container>
     </v-main>
   </v-app>
@@ -25,11 +61,13 @@
 
 <script>
 
+import EarthMap from '@/components/EarthMap'
 export default {
   name: 'App',
-
+  components: { EarthMap },
   data: () => ({
-    //
+    startDate: new Date().toISOString().substr(0, 7),
+    startMenu: false
   })
 }
 </script>
