@@ -29,8 +29,8 @@ function getEarthquakeRelations (clickId) {
 
 function getEarthquakeByDateAndMag (startDate, endDate, minMagnitude, maxMagnitude) {
   var earthquakes = []
-  var start = new Date(startDate)
-  var end = new Date(endDate)
+  var start = new Date(startDate + ' 00:00:00')
+  var end = new Date(endDate + ' 23:59:59')
   for (let i = 0; i < earthquakeJson.length; i++) {
     const date = new Date(earthquakeJson[i].date)
     if (date > end) {

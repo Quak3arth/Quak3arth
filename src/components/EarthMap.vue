@@ -1,7 +1,15 @@
 <template>
-  <div style="height: 100%; position: relative;width:100%;" ref="fdiv">
+  <div style="height: 100%; position: relative;width:100%;">
     <div style="bottom: 50%; position: absolute;right: 50%;transform: translate(50%, 50%)">
       <canvas ref="earth">
+        <v-tooltip
+          v-model="showDetails"
+        :absolute="true"
+        :position-x='50'
+        :position-y='50'
+        >
+          <span>Test tooltip</span>
+        </v-tooltip>
       </canvas>
     </div>
   </div>
@@ -35,13 +43,16 @@ var renderPass
 var outlinePass
 var effectFXAA
 var selectedObjects
-var mouseDown = false
+var focus = false
+
+var fix = false
 export default {
   name: 'earthMap',
   data: () => ({
     earthMapHeight: undefined,
     earthMapWidth: undefined,
-    earthRadius: 640
+    earthRadius: 640,
+    showDetails: true
   }),
   props: {
     earthquakeArray: {
@@ -79,34 +90,14 @@ export default {
       }
       return [...new Set(earthquake)]
     }
-    // const testOnEarth = (event) => {
-    //   // event.preventDefault()
-    //   var rect = earthDOM.getBoundingClientRect()
-    //   var raycaster = new THREE.Raycaster()
-    //   raycaster.near = 0.8 * this.earthRadius
-    //   raycaster.far = 4.2 * this.earthRadius
-    //   var mouse = new THREE.Vector2()
-    //   var x = event.clientX - rect.left * (earthDOM.width / rect.width)
-    //   var y = event.clientY - rect.top * (earthDOM.height / rect.height)
-    //   mouse.x = (x / earthDOM.width) * 2 - 1
-    //   mouse.y = -(y / earthDOM.height) * 2 + 1
-    //   if (camera) {
-    //     raycaster.setFromCamera(mouse, camera)
-    //   }
-    //   var intersectObjects = raycaster.intersectObject(earthMesh)
-    //   return intersectObjects.length > 0
-    // }
-    // this.$refs.earth.addEventListener('dblclick', (event) => {
-    //   // console.log(getIntersectEarthquake(event))
-    // })
-    //   this.$refs.earth.addEventListener('mouseover', (event) => {
-    //   event.preventDefault()
-    //   controls.autoRotate = false
-    // })
-    // this.$refs.earth.addEventListener('mouseout', (event) => {
-    //   event.preventDefault()
-    //   controls.autoRotate = true
-    // })
+    this.$refs.earth.onmouseover = (event) => {
+      event.preventDefault()
+      focus = true
+    }
+    this.$refs.earth.onmouseout = (event) => {
+      event.preventDefault()
+      focus = false
+    }
 
     // const seperatemouseMove = (event) => {
     //   this.$refs.earth.onmousemove = null
@@ -145,14 +136,7 @@ export default {
     //     controls.autoRotate = true
     //   }
     // })
-    // this.$refs.earth.addEventListener('mousedown', (event) => {
-    //   // console.log('down')
-    //   mouseDown = true
-    // })
-    // this.$refs.earth.addEventListener('mouseup', (event) => {
-    //   // console.log('up')
-    //   mouseDown = false
-    // })
+
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
     var erd = elementResizeDetectorMaker()
@@ -162,10 +146,6 @@ export default {
       that.earthMapHeight = element.offsetHeight
       that.renderResize()
     })
-    // setInterval(() => {
-    //   var e = event || window.event
-    //   console.log(e)
-    // }, 1000)
   },
   created () {
     // console.log(this.jsonData)
@@ -174,8 +154,10 @@ export default {
     earthquakeArray: {
       handler (newValue, oldValue) {
         // console.log(newValue)
+        fix = true
         this.initQuakeGroup(newValue)
         // console.log(newValue)
+        fix = false
       },
       deep: true
     }
@@ -272,9 +254,7 @@ export default {
       controls = new OrbitControls(camera, renderer.domElement)
       controls.enableZoom = true
       controls.enablePan = true
-      controls.autoRotate = true
-      controls.autoRotateSpeed = 1
-      // controls.enableDamping = true
+      controls.autoRotate = false
       return controls
     },
     initBackground () {
@@ -297,22 +277,6 @@ export default {
     rendering () {
       composer.render()
     },
-    seperatemouseMove (event) {
-      controls.log(event)
-      // if (testOnEarth(event)) {
-      //   controls.autoRotate = false
-      //   if (!mouseDown) {
-      //     const nowHoverEarthquakeArray = getIntersectEarthquake(event)
-      //     // for (const earthquake of nowHoverEarthquakeArray) {
-      //     // console.log(earthquake)
-      //     outlinePass.selectedObjects = highlight(nowHoverEarthquakeArray)
-      //     // }
-      //     // outlinePass.selectedObjects = nowHoverEarthquakeArray
-      //   }
-      // } else {
-      //   controls.autoRotate = true
-      // }
-    },
     initEarth () {
       var earthTexture = require('@/assets/earth2.jpg')
       var earthGeometry = new THREE.SphereGeometry(this.earthRadius, 2000, 2000) // 球体
@@ -325,11 +289,18 @@ export default {
       return mesh
     },
     animate () {
-      if (controls) {
-        controls.update()
+      if (!fix) {
+        if (controls) {
+          controls.update()
+        }
+        if (!focus) {
+          if (earthGroup) {
+            earthGroup.rotation.y += 0.005
+          }
+        }
+        // this.waveSpread()
+        this.rendering()
       }
-      // this.waveSpread()
-      this.rendering()
       requestAnimationFrame(this.animate)
     },
     renderEarth (elementDOM) {
@@ -344,7 +315,7 @@ export default {
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
       const quakeGroup = this.initQuakeGroup(this.earthquakeArray, this.earthRadius)
-      scene.add(quakeGroup)
+      earthGroup.add(quakeGroup)
       this.initComposer()
       this.initOutline()
     },
