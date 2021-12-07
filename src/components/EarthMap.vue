@@ -421,7 +421,7 @@ export default {
       }
       waveList = []
       for (var i = 0; i < earthQuakeArray.length; i++) {
-        if (i >= 10) {
+        if (i >= 5000) {
           break
         }
         var lat = earthQuakeArray[i].location.latitude
