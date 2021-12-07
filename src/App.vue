@@ -101,12 +101,12 @@
       <v-btn
         block
         color="primary"
-        @click="generateWordsText"
+        @click="startRender"
       >让我康康</v-btn>
     </v-navigation-drawer>
     <v-main>
       <v-container fill-height overflow-hidden>
-<!--        <earth-map/>-->
+        <earth-map :earthquake-array="selectedEarthquakes"/>
       </v-container>
     </v-main>
   </v-app>
@@ -115,12 +115,13 @@
 <script>
 
 import EarthMap from '@/components/EarthMap'
+import { getEarthquakeByDateAndMag } from '@/plugins/utils'
 export default {
   name: 'App',
   components: { EarthMap },
   watch: {
     startDate (newValue) {
-      console.log(newValue)
+      // console.log(newValue)
       if (new Date(newValue) > new Date(this.endDate)) {
         this.endDate = newValue
       }
@@ -133,13 +134,17 @@ export default {
     endMenu: false,
     minMenu: false,
     maxMenu: false,
-    magnitudeRange: [4.5, 9]
+    magnitudeRange: [4.5, 9],
+    selectedEarthquakes: []
   }),
   computed: {
-
   },
 
   methods: {
+    startRender () {
+      // console.log('ok')
+      this.selectedEarthquakes = getEarthquakeByDateAndMag(this.startDate, this.endDate, this.magnitudeRange[0], this.magnitudeRange[1])
+    }
   }
 }
 </script>

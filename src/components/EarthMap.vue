@@ -1,6 +1,6 @@
 <template>
   <div style="height: 100%; position: relative;width:100%;" ref="fdiv">
-    <div @touchstart.native.prevent="seperatemouseMove" style="bottom: 50%; position: absolute;right: 50%;transform: translate(50%, 50%)">
+    <div style="bottom: 50%; position: absolute;right: 50%;transform: translate(50%, 50%)">
       <canvas ref="earth">
       </canvas>
     </div>
@@ -17,7 +17,6 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass'
 
 import { BLH2XYZ } from '@/plugins/utils'
-import earthquakeJson from '@/assets/earthquake_v1.json'
 
 var THREE = require('three')
 var camera
@@ -45,9 +44,9 @@ export default {
     earthRadius: 640
   }),
   props: {
-    jsonData: {
+    earthquakeArray: {
       type: Array,
-      default: () => { return earthquakeJson }
+      default: () => { return [] }
     }
   },
   mounted () {
@@ -80,27 +79,27 @@ export default {
       }
       return [...new Set(earthquake)]
     }
-    const testOnEarth = (event) => {
-      // event.preventDefault()
-      var rect = earthDOM.getBoundingClientRect()
-      var raycaster = new THREE.Raycaster()
-      raycaster.near = 0.8 * this.earthRadius
-      raycaster.far = 4.2 * this.earthRadius
-      var mouse = new THREE.Vector2()
-      var x = event.clientX - rect.left * (earthDOM.width / rect.width)
-      var y = event.clientY - rect.top * (earthDOM.height / rect.height)
-      mouse.x = (x / earthDOM.width) * 2 - 1
-      mouse.y = -(y / earthDOM.height) * 2 + 1
-      if (camera) {
-        raycaster.setFromCamera(mouse, camera)
-      }
-      var intersectObjects = raycaster.intersectObject(earthMesh)
-      return intersectObjects.length > 0
-    }
-    this.$refs.earth.addEventListener('dblclick', (event) => {
-      // console.log(getIntersectEarthquake(event))
-    })
-    // this.$refs.earth.addEventListener('mouseover', (event) => {
+    // const testOnEarth = (event) => {
+    //   // event.preventDefault()
+    //   var rect = earthDOM.getBoundingClientRect()
+    //   var raycaster = new THREE.Raycaster()
+    //   raycaster.near = 0.8 * this.earthRadius
+    //   raycaster.far = 4.2 * this.earthRadius
+    //   var mouse = new THREE.Vector2()
+    //   var x = event.clientX - rect.left * (earthDOM.width / rect.width)
+    //   var y = event.clientY - rect.top * (earthDOM.height / rect.height)
+    //   mouse.x = (x / earthDOM.width) * 2 - 1
+    //   mouse.y = -(y / earthDOM.height) * 2 + 1
+    //   if (camera) {
+    //     raycaster.setFromCamera(mouse, camera)
+    //   }
+    //   var intersectObjects = raycaster.intersectObject(earthMesh)
+    //   return intersectObjects.length > 0
+    // }
+    // this.$refs.earth.addEventListener('dblclick', (event) => {
+    //   // console.log(getIntersectEarthquake(event))
+    // })
+    //   this.$refs.earth.addEventListener('mouseover', (event) => {
     //   event.preventDefault()
     //   controls.autoRotate = false
     // })
@@ -109,26 +108,26 @@ export default {
     //   controls.autoRotate = true
     // })
 
-    const seperatemouseMove = (event) => {
-      this.$refs.earth.onmousemove = null
-      // event.preventDefault()
-      setTimeout(() => {
-        this.$refs.earth.onmousemove = seperatemouseMove
-      }, 100)
-      if (testOnEarth(event)) {
-        controls.autoRotate = false
-        if (!mouseDown) {
-          const nowHoverEarthquakeArray = getIntersectEarthquake(event)
-          // for (const earthquake of nowHoverEarthquakeArray) {
-          // console.log(earthquake)
-          outlinePass.selectedObjects = highlight(nowHoverEarthquakeArray)
-          // }
-          // outlinePass.selectedObjects = nowHoverEarthquakeArray
-        }
-      } else {
-        controls.autoRotate = true
-      }
-    }
+    // const seperatemouseMove = (event) => {
+    //   this.$refs.earth.onmousemove = null
+    //   // event.preventDefault()
+    //   setTimeout(() => {
+    //     this.$refs.earth.onmousemove = seperatemouseMove
+    //   }, 100)
+    //   if (testOnEarth(event)) {
+    //     controls.autoRotate = false
+    //     if (!mouseDown) {
+    //       const nowHoverEarthquakeArray = getIntersectEarthquake(event)
+    //       // for (const earthquake of nowHoverEarthquakeArray) {
+    //       // console.log(earthquake)
+    //       outlinePass.selectedObjects = highlight(nowHoverEarthquakeArray)
+    //       // }
+    //       // outlinePass.selectedObjects = nowHoverEarthquakeArray
+    //     }
+    //   } else {
+    //     controls.autoRotate = true
+    //   }
+    // }
     // this.$refs.earth.onmousemove = seperatemouseMove
     // this.$refs.earth.addEventListener('mousemove', (event) => {
     //   event.preventDefault()
@@ -146,14 +145,14 @@ export default {
     //     controls.autoRotate = true
     //   }
     // })
-    this.$refs.earth.addEventListener('mousedown', (event) => {
-      // console.log('down')
-      mouseDown = true
-    })
-    this.$refs.earth.addEventListener('mouseup', (event) => {
-      // console.log('up')
-      mouseDown = false
-    })
+    // this.$refs.earth.addEventListener('mousedown', (event) => {
+    //   // console.log('down')
+    //   mouseDown = true
+    // })
+    // this.$refs.earth.addEventListener('mouseup', (event) => {
+    //   // console.log('up')
+    //   mouseDown = false
+    // })
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
     var erd = elementResizeDetectorMaker()
@@ -170,6 +169,16 @@ export default {
   },
   created () {
     // console.log(this.jsonData)
+  },
+  watch: {
+    earthquakeArray: {
+      handler (newValue, oldValue) {
+        // console.log(newValue)
+        this.initQuakeGroup(newValue)
+        // console.log(newValue)
+      },
+      deep: true
+    }
   },
   methods: {
     initComposer () {
@@ -334,7 +343,7 @@ export default {
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
-      const quakeGroup = this.initQuakeGroup(this.jsonData, this.earthRadius)
+      const quakeGroup = this.initQuakeGroup(this.earthquakeArray, this.earthRadius)
       scene.add(quakeGroup)
       this.initComposer()
       this.initOutline()

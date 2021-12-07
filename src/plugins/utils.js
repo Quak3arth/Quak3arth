@@ -1,7 +1,7 @@
+import earthquakeJson from '@/assets/earthquake_v2.json'
 export { BLH2XYZ }
 export { getEarthquakeRelations }
 export { getEarthquakeByDateAndMag }
-import earthquakeJson from '@/assets/earthquake_v2.json'
 
 function BLH2XYZ (lng, lat, radius) {
   const phi = (180 + lng) * (Math.PI / 180)
@@ -13,34 +13,34 @@ function BLH2XYZ (lng, lat, radius) {
   }
 }
 
-function getEarthquakeRelations(clickId) {
-  var showList = [];
-  var currentTag = earthquakeJson[clickId].tag;
-  if (currentTag == ""){
-    return showList;
+function getEarthquakeRelations (clickId) {
+  var showList = []
+  var currentTag = earthquakeJson[clickId].tag
+  if (currentTag === '') {
+    return showList
   }
-  for(var i = 0; i < earthquakeJson.length; i++){
-      if(earthquakeJson[i].tag == currentTag){
-          showList.push(earthquakeJson[i])
-      }
+  for (var i = 0; i < earthquakeJson.length; i++) {
+    if (earthquakeJson[i].tag === currentTag) {
+      showList.push(earthquakeJson[i])
+    }
   }
-  return showList;
+  return showList
 }
 
-function getEarthquakeByDateAndMag(startDate, endDate, minMagnitude, maxMagnitude) {
-  var earthquakes = [];
-  var start = new Date(startDate);
-  var end = new Date(endDate);
-  for(var i = 0; i < earthquakeJson.length; i++){
-    var date = new Date(earthquakeJson[i].date);
-    if(date > end){
-      break;
+function getEarthquakeByDateAndMag (startDate, endDate, minMagnitude, maxMagnitude) {
+  var earthquakes = []
+  var start = new Date(startDate)
+  var end = new Date(endDate)
+  for (let i = 0; i < earthquakeJson.length; i++) {
+    const date = new Date(earthquakeJson[i].date)
+    if (date > end) {
+      break
     }
-    if(date >= start){
-      if(earthquakeJson[i].magnitude >= minMagnitude && earthquakeJson[i].magnitude <= maxMagnitude){
+    if (date >= start) {
+      if (earthquakeJson[i].magnitude >= minMagnitude && earthquakeJson[i].magnitude <= maxMagnitude) {
         earthquakes.push(earthquakeJson[i])
       }
     }
   }
-  return earthquakes;
+  return earthquakes
 }
