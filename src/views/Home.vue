@@ -6,7 +6,8 @@
 import EarthMap from '@/components/EarthMap'
 export default {
   name: 'Home',
-
+  data: () => ({
+  }),
   components: {
     EarthMap
   }
