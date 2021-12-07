@@ -2,6 +2,7 @@ import earthquakeJson from '@/assets/earthquake_v2.json'
 export { BLH2XYZ }
 export { getEarthquakeRelations }
 export { getEarthquakeByDateAndMag }
+import earthquakeJson from '@/assets/earthquake_v2.json'
 
 function BLH2XYZ (lng, lat, radius) {
   const phi = (180 + lng) * (Math.PI / 180)
@@ -44,3 +45,4 @@ function getEarthquakeByDateAndMag (startDate, endDate, minMagnitude, maxMagnitu
   }
   return earthquakes
 }
+
