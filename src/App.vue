@@ -38,10 +38,9 @@
           </template>
           <v-date-picker
             v-model="startDate"
-            type="month"
             locale="zh-cn"
-            min="2000-01"
-            max="2021-10"
+            min="2000-01-01"
+            max="2021-10-31"
             no-title
             scrollable
           >
@@ -71,10 +70,9 @@
           </template>
           <v-date-picker
             v-model="endDate"
-            type="month"
             locale="zh-cn"
-            :min="startDate"
-            max="2021-10"
+            :min="minEndDate"
+            :max="maxEndDate"
             no-title
             scrollable
           >
@@ -121,16 +119,18 @@ export default {
   components: { EarthMap },
   watch: {
     startDate (newValue) {
-      // console.log(newValue)
-      if (new Date(newValue) > new Date(this.endDate)) {
-        this.endDate = newValue
+      const startdate = new Date(newValue)
+      const enddate = new Date(this.endDate)
+      if (startdate > enddate) {
+        enddate.setDate(startdate.getDate() + 90)
+        this.endDate = enddate.toISOString().substr(0, 10)
       }
     }
   },
   data: () => ({
-    startDate: '2000-01',
+    startDate: '2000-01-01',
     startMenu: false,
-    endDate: '2000-01',
+    endDate: '2000-03-01',
     endMenu: false,
     minMenu: false,
     maxMenu: false,
@@ -138,11 +138,19 @@ export default {
     selectedEarthquakes: []
   }),
   computed: {
+    minEndDate: function () {
+      return this.startDate
+    },
+    maxEndDate: function () {
+      const startdate = new Date(this.startDate)
+      const enddate = new Date(startdate)
+      enddate.setDate(startdate.getDate() + 90)
+      return enddate.toISOString().substr(0, 10)
+    }
   },
 
   methods: {
     startRender () {
-      // console.log('ok')
       this.selectedEarthquakes = getEarthquakeByDateAndMag(this.startDate, this.endDate, this.magnitudeRange[0], this.magnitudeRange[1])
     }
   }
