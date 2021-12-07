@@ -29,7 +29,7 @@
           <template v-slot:activator="{ on, attrs }">
             <v-text-field
               v-model="startDate"
-              label="开始月份"
+              label="开始日期"
               prepend-icon="mdi-calendar-month"
               readonly
               v-bind="attrs"
@@ -61,7 +61,7 @@
           <template v-slot:activator="{ on, attrs }">
             <v-text-field
               v-model="endDate"
-              label="结束月份"
+              label="结束日期"
               prepend-icon="mdi-calendar-month"
               readonly
               v-bind="attrs"
