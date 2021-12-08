@@ -3,12 +3,24 @@
     <div style="bottom: 50%; position: absolute;right: 50%;transform: translate(50%, 50%)">
       <canvas ref="earth">
         <v-tooltip
-          v-model="showDetails"
+          color="primary"
+          v-model="tooltip.showDetails"
         :absolute="true"
-        :position-x='50'
-        :position-y='50'
+        :position-x='tooltip.position.x'
+        :position-y='tooltip.position.y'
         >
-          <span>Test tooltip</span>
+          <div class="text-h6"> 信息 </div>
+          <v-spacer></v-spacer>
+          <span>
+            地震编号：{{tooltip.content.name}} <br>
+            震级：{{tooltip.content.magnitude}}<br>
+            经度：{{tooltip.content.location.longitude}}<br>
+            纬度：{{tooltip.content.location.latitude}} <br>
+            震源深度：{{tooltip.content.depth}} km <br>
+            地震种类：{{tooltip.content.category}} <br>
+            地震时间：{{tooltip.content.date}} <br>
+            位置描述：{{tooltip.content.description}}<br>
+          </span>
         </v-tooltip>
       </canvas>
     </div>
@@ -52,7 +64,27 @@ export default {
     earthMapHeight: undefined,
     earthMapWidth: undefined,
     earthRadius: 640,
-    showDetails: true
+    tooltip: {
+      showDetails: false,
+      position: {
+        x: 50,
+        y: 50
+      },
+      content: {
+        id: 0,
+        category: 'default',
+        date: 'default',
+        depth: 'default',
+        location: {
+          latitude: 41.927,
+          longitude: 20.543
+        },
+        magnitude: 4.5,
+        name: 'default',
+        description: 'default',
+        tag: ''
+      }
+    }
   }),
   props: {
     earthquakeArray: {
@@ -89,6 +121,13 @@ export default {
         }
       }
       return [...new Set(earthquake)]
+    }
+    this.$refs.earth.onclick = (event) => {
+      event.preventDefault()
+      const earthquakeArray = getIntersectEarthquake(event)
+      if (earthquakeArray.length > 0) {
+
+      }
     }
     this.$refs.earth.onmouseover = (event) => {
       event.preventDefault()

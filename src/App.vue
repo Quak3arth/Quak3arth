@@ -17,7 +17,7 @@
     </v-app-bar>
     <v-navigation-drawer app>
       <v-card>
-        <v-subheader>日期选择</v-subheader>
+        <v-card-subtitle>日期选择</v-card-subtitle>
         <v-menu
           ref="startmenu"
           v-model="startMenu"
@@ -82,10 +82,12 @@
           </v-date-picker>
         </v-menu>
       </v-card>
-      <v-card>
-        <v-subheader>
+      <v-card
+        hover
+      >
+        <v-card-subtitle>
           震级范围选择
-        </v-subheader>
+        </v-card-subtitle>
         <v-range-slider
           v-model="magnitudeRange"
           :min="4.5"
