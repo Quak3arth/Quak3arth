@@ -12,19 +12,25 @@
           :close-on-click="false"
           offset-y
         >
-
-          <div class="text-h6"> 信息 </div>
-          <v-spacer></v-spacer>
-          <span>
-            地震编号：{{tooltip.content.name}} <br>
-            震级：{{tooltip.content.magnitude}}<br>
-            经度：{{tooltip.content.location.longitude}}<br>
-            纬度：{{tooltip.content.location.latitude}} <br>
-            震源深度：{{tooltip.content.depth}} km <br>
-            地震种类：{{tooltip.content.category}} <br>
-            地震时间：{{tooltip.content.date}} <br>
-            位置描述：{{tooltip.content.description}}<br>
-          </span>
+          <v-card
+            style="display: grid; gap: 8px;padding: 8px;"
+            color="rgb(1,1,1,0.2)"
+          elevation="2"
+          outlined
+          >
+            <div class="white--text"> 信息 </div>
+            <v-spacer></v-spacer>
+            <span class="white--text">
+              地震编号：{{tooltip.content.name}} <br>
+              震级：{{tooltip.content.magnitude}}<br>
+              经度：{{tooltip.content.location.longitude}}<br>
+              纬度：{{tooltip.content.location.latitude}} <br>
+              震源深度：{{tooltip.content.depth}} km <br>
+              地震种类：{{tooltip.content.category}} <br>
+              地震时间：{{tooltip.content.date}} <br>
+              位置描述：{{tooltip.content.description}}<br>
+            </span>
+          </v-card>
         </v-menu>
       </canvas>
     </div>
@@ -58,9 +64,7 @@ var renderPass
 var outlinePass
 var effectFXAA
 var selectedObjects
-var focus = false
 
-var fix = false
 export default {
   name: 'earthMap',
   data: () => ({
@@ -95,6 +99,10 @@ export default {
     earthquakeArray: {
       type: Array,
       default: () => { return [] }
+    },
+    freeze: {
+      type: Boolean,
+      default: false
     }
   },
   mounted () {
@@ -139,25 +147,6 @@ export default {
       } else {
         this.selectedEarthquake = []
       }
-    }
-    this.$refs.earth.onclick = (event) => {
-      event.preventDefault()
-      this.tooltip.showDetails = false
-      this.tooltip.position.x = event.clientX
-      this.tooltip.position.y = event.clientY
-      this.$nextTick(() => {
-        this.tooltip.showDetails = true
-      })
-      // console.log(this.$refs.tip)
-      // const list = getIntersectEarthquake(event)
-    }
-    this.$refs.earth.onmouseenter = (event) => {
-      event.preventDefault()
-      focus = true
-    }
-    this.$refs.earth.onmouseleave = (event) => {
-      event.preventDefault()
-      focus = false
     }
 
     // const seperatemouseMove = (event) => {
@@ -214,9 +203,7 @@ export default {
   watch: {
     earthquakeArray: {
       handler (newValue, oldValue) {
-        fix = true
         this.initQuakeGroup(newValue)
-        fix = false
       },
       deep: true
     },
@@ -234,6 +221,22 @@ export default {
     //   },
     //   deep: true
     // },
+    freeze: {
+      handler (newValue, oldValue) {
+        if (newValue === true) {
+          this.$refs.earth.onclick = (event) => {
+            event.preventDefault()
+            this.tooltip.showDetails = true
+            this.tooltip.position.x = event.clientX
+            this.tooltip.position.y = event.clientY
+          }
+        } else {
+          this.$refs.earth.onclick = null
+        }
+      },
+      immediate: true
+    },
+
     focusedEarthquake: {
       handler (newValue, oldValue) {
         // this.tooltip.
@@ -368,18 +371,16 @@ export default {
       return mesh
     },
     animate () {
-      if (!fix) {
-        if (controls) {
-          controls.update()
-        }
-        if (!focus) {
-          if (earthGroup) {
-            earthGroup.rotation.y += 0.005
-          }
-        }
-        // this.waveSpread()
-        this.rendering()
+      if (controls) {
+        controls.update()
       }
+      if (!this.freeze) {
+        if (earthGroup) {
+          earthGroup.rotation.y += 0.005
+        }
+      }
+      // this.waveSpread()
+      this.rendering()
       requestAnimationFrame(this.animate)
     },
     renderEarth (elementDOM) {

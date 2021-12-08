@@ -15,16 +15,27 @@
         <v-icon>mdi-github</v-icon>
       </v-btn>
     </v-app-bar>
-    <v-navigation-drawer app>
+    <v-navigation-drawer
+      app
+    >
+      <v-card
+        style="display: grid; gap: 8px;padding: 8px;"
+        hover
+      >
+        <v-switch
+          v-model="freeze"
+          label="聚焦模式"
+        >
+        </v-switch>
+      </v-card>
       <v-card
         hover
+        style="display: grid; gap: 8px;padding: 8px;"
       >
         <v-card-subtitle>日期选择</v-card-subtitle>
         <v-menu
           ref="startmenu"
           v-model="startMenu"
-          :close-on-content-click="false"
-          :return-value.sync="startDate"
           transition="scale-transition"
           offset-y
         >
@@ -46,16 +57,11 @@
             no-title
             scrollable
           >
-            <v-spacer></v-spacer>
-            <v-btn text color="primary" @click="startMenu = false">取消</v-btn>
-            <v-btn text color="primary" @click="$refs.startmenu.save(startDate)">确定</v-btn>
           </v-date-picker>
         </v-menu>
         <v-menu
           ref="endmenu"
           v-model="endMenu"
-          :close-on-content-click="false"
-          :return-value.sync="endDate"
           transition="scale-transition"
           offset-y
           full-width
@@ -78,13 +84,11 @@
             no-title
             scrollable
           >
-            <v-spacer></v-spacer>
-            <v-btn text color="primary" @click="endMenu = false">取消</v-btn>
-            <v-btn text color="primary" @click="$refs.endmenu.save(endDate)">确定</v-btn>
           </v-date-picker>
         </v-menu>
       </v-card>
       <v-card
+        style="display: grid; gap: 8px;padding: 8px;"
         hover
       >
         <v-card-subtitle>
@@ -108,7 +112,10 @@
     </v-navigation-drawer>
     <v-main>
       <v-container fill-height overflow-hidden>
-        <earth-map :earthquake-array="selectedEarthquakes"/>
+        <earth-map
+          :earthquake-array="selectedEarthquakes"
+          :freeze="freeze"
+        />
       </v-container>
     </v-main>
   </v-app>
@@ -139,7 +146,8 @@ export default {
     minMenu: false,
     maxMenu: false,
     magnitudeRange: [4.5, 9],
-    selectedEarthquakes: []
+    selectedEarthquakes: [],
+    freeze: false
   }),
   computed: {
     minEndDate: function () {
