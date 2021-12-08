@@ -1,14 +1,18 @@
 <template>
   <div style="height: 100%; position: relative;width:100%;">
     <div style="bottom: 50%; position: absolute;right: 50%;transform: translate(50%, 50%)">
-      <canvas ref="earth">
-        <v-tooltip
-          color="primary"
+      <canvas
+        ref="earth"
+      >
+        <v-menu
+          absolute
           v-model="tooltip.showDetails"
-        :absolute="true"
-        :position-x='tooltip.position.x'
-        :position-y='tooltip.position.y'
+          :position-x="tooltip.position.x"
+          :position-y="tooltip.position.y"
+          :close-on-click="false"
+          offset-y
         >
+
           <div class="text-h6"> 信息 </div>
           <v-spacer></v-spacer>
           <span>
@@ -21,7 +25,7 @@
             地震时间：{{tooltip.content.date}} <br>
             位置描述：{{tooltip.content.description}}<br>
           </span>
-        </v-tooltip>
+        </v-menu>
       </canvas>
     </div>
   </div>
@@ -48,8 +52,7 @@ var controls
 var earthMesh
 var quakeGroup
 var waveList
-var focusedEarthquake = []
-var selectedEarthquake = []
+
 var composer
 var renderPass
 var outlinePass
@@ -63,6 +66,8 @@ export default {
   data: () => ({
     earthMapHeight: undefined,
     earthMapWidth: undefined,
+    focusedEarthquake: undefined,
+    selectedEarthquakes: [],
     earthRadius: 640,
     tooltip: {
       showDetails: false,
@@ -101,8 +106,9 @@ export default {
       // event.preventDefault()
       var rect = earthDOM.getBoundingClientRect()
       var raycaster = new THREE.Raycaster()
-      raycaster.near = 1.8 * this.earthRadius
-      raycaster.far = 3.2 * this.earthRadius
+      const o = new THREE.Vector3(0, 0, 0)
+      raycaster.near = Math.max(0.1, Math.max(0.1, camera.position.distanceTo(0) - 0.8 * this.earthRadius) - 0.8 * this.earthRadius)
+      raycaster.far = Math.sqrt(camera.position.distanceTo(o) ^ 2 + 1.1 * this.earthRadius ^ 2)
       var mouse = new THREE.Vector2()
       var x = event.clientX - rect.left * (earthDOM.width / rect.width)
       var y = event.clientY - rect.top * (earthDOM.height / rect.height)
@@ -122,18 +128,34 @@ export default {
       }
       return [...new Set(earthquake)]
     }
-    this.$refs.earth.onclick = (event) => {
-      event.preventDefault()
-      const earthquakeArray = getIntersectEarthquake(event)
-      if (earthquakeArray.length > 0) {
-
+    const testEarthquakeList = (quakelist) => {
+      if (quakelist) {
+        this.selectedEarthquake = quakelist
+        if (quakelist.length <= 0) {
+          this.focusedEarthquake = undefined
+        } else {
+          this.focusedEarthquake = this.selectedEarthquake[0]
+        }
+      } else {
+        this.selectedEarthquake = []
       }
     }
-    this.$refs.earth.onmouseover = (event) => {
+    this.$refs.earth.onclick = (event) => {
+      event.preventDefault()
+      this.tooltip.showDetails = false
+      this.tooltip.position.x = event.clientX
+      this.tooltip.position.y = event.clientY
+      this.$nextTick(() => {
+        this.tooltip.showDetails = true
+      })
+      // console.log(this.$refs.tip)
+      // const list = getIntersectEarthquake(event)
+    }
+    this.$refs.earth.onmouseenter = (event) => {
       event.preventDefault()
       focus = true
     }
-    this.$refs.earth.onmouseout = (event) => {
+    this.$refs.earth.onmouseleave = (event) => {
       event.preventDefault()
       focus = false
     }
@@ -192,11 +214,29 @@ export default {
   watch: {
     earthquakeArray: {
       handler (newValue, oldValue) {
-        // console.log(newValue)
         fix = true
         this.initQuakeGroup(newValue)
-        // console.log(newValue)
         fix = false
+      },
+      deep: true
+    },
+    // selectedEarthquakes: {
+    //   handler (newValue, oldValue) {
+    //     if (newValue) {
+    //       if (newValue === []) {
+    //
+    //       } else {
+    //
+    //       }
+    //     } else {
+    //
+    //     }
+    //   },
+    //   deep: true
+    // },
+    focusedEarthquake: {
+      handler (newValue, oldValue) {
+        // this.tooltip.
       },
       deep: true
     }

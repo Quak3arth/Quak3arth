@@ -16,7 +16,9 @@
       </v-btn>
     </v-app-bar>
     <v-navigation-drawer app>
-      <v-card>
+      <v-card
+        hover
+      >
         <v-card-subtitle>日期选择</v-card-subtitle>
         <v-menu
           ref="startmenu"
