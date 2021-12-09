@@ -10,6 +10,7 @@
           :position-x="tooltip.position.x"
           :position-y="tooltip.position.y"
           :close-on-click="false"
+          :close-on-content-click="false"
           offset-y
         >
           <v-card
@@ -18,7 +19,22 @@
           elevation="2"
           outlined
           >
-            <div class="white--text"> 信息 </div>
+            <v-chip-group
+              mandatory
+              column
+              >
+              <v-chip
+                v-for = "earthquake in selectedEarthquake"
+                :key="earthquake.info.id"
+                @focus="focusedEarthquake=earthquake"
+                color="white"
+                outlined
+              >
+                {{earthquake.info.name}}
+              </v-chip>
+            </v-chip-group>
+            <v-spacer/>
+            <div class="white--text"> 地震信息 </div>
             <v-spacer></v-spacer>
             <span class="white--text">
               地震编号：{{tooltip.content.name}} <br>
@@ -68,7 +84,7 @@ var pointMaterial = new THREE.MeshBasicMaterial({
   side: THREE.DoubleSide,
   depthWrite: false
 })
-var pointGeometry = new THREE.CircleGeometry(0.5)
+var pointGeometry = new THREE.CircleGeometry(0.5, 16)
 var lightCylinderPlane = new THREE.PlaneGeometry(4, 10)
 lightCylinderPlane.rotateX(Math.PI / 2)
 lightCylinderPlane.translate(0, 0, 4)
@@ -90,14 +106,14 @@ var waveMaterial = new THREE.MeshBasicMaterial(
     depthWrite: false
   }
 )
-var waveGeometry = new THREE.CircleGeometry(0.5)
+var waveGeometry = new THREE.CircleGeometry(0.5, 16)
 export default {
   name: 'earthMap',
   data: () => ({
     earthMapHeight: undefined,
     earthMapWidth: undefined,
     focusedEarthquake: undefined,
-    selectedEarthquakes: [],
+    selectedEarthquake: [],
     earthRadius: 640,
     tooltip: {
       showDetails: false,
@@ -155,20 +171,6 @@ export default {
       },
       deep: true
     },
-    // selectedEarthquakes: {
-    //   handler (newValue, oldValue) {
-    //     if (newValue) {
-    //       if (newValue === []) {
-    //
-    //       } else {
-    //
-    //       }
-    //     } else {
-    //
-    //     }
-    //   },
-    //   deep: true
-    // },
     freeze: {
       handler (newValue, oldValue) {
         if (newValue === true) {
@@ -186,7 +188,6 @@ export default {
         }
       }
     },
-
     focusedEarthquake: {
       handler (newValue, oldValue) {
         if (newValue) {
@@ -237,10 +238,8 @@ export default {
       var intersectObjects = raycaster.intersectObjects(quakeGroup.children)
       var earthquake = []
       for (const obj of intersectObjects) {
-        if (obj.object.name === 'point' || obj.object.name === 'wave') {
+        if (obj.object.name === 'point') {
           earthquake.push(obj.object.parent)
-        } else if (obj.object.name === 'lightCylinder') {
-          earthquake.push(obj.object.parent.parent)
         }
       }
       return [...new Set(earthquake)]
@@ -273,7 +272,6 @@ export default {
       composer.addPass(outlinePass)
     },
     renderResize () {
-      // console.log(this.camera)
       camera.aspect = this.earthMapWidth / this.earthMapHeight
       camera.updateProjectionMatrix()
       renderer.setSize(this.earthMapWidth, this.earthMapHeight)

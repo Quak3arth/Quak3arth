@@ -1,5 +1,8 @@
 <template>
-  <v-app v-cloak>
+  <v-app
+    v-cloak
+    dark
+  >
     <v-app-bar
       app
       dark
