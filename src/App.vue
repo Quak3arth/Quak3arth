@@ -1,5 +1,8 @@
 <template>
-  <v-app v-cloak>
+  <v-app
+    v-cloak
+    dark
+  >
     <v-app-bar
       app
       dark
@@ -37,6 +40,7 @@
           ref="startmenu"
           v-model="startMenu"
           transition="scale-transition"
+          :close-on-content-click="false"
           offset-y
         >
           <template v-slot:activator="{ on, attrs }">
@@ -54,6 +58,7 @@
             locale="zh-cn"
             min="2000-01-01"
             max="2021-10-31"
+            @input="startMenu = false"
             no-title
             scrollable
           >
@@ -63,6 +68,7 @@
           ref="endmenu"
           v-model="endMenu"
           transition="scale-transition"
+          :close-on-content-click="false"
           offset-y
         >
           <template v-slot:activator="{ on, attrs }">
@@ -80,6 +86,7 @@
             locale="zh-cn"
             :min="minEndDate"
             :max="maxEndDate"
+            @input="endMenu = false"
             no-title
             scrollable
           >
@@ -130,15 +137,21 @@ export default {
   watch: {
     startDate (newValue) {
       const startdate = new Date(newValue)
-      const enddate = new Date(this.endDate)
+      var enddate = new Date(this.endDate)
       if (startdate > enddate) {
-        enddate.setDate(startdate.getDate() + 90)
+        enddate = new Date(startdate.getTime() + 24 * 60 * 60 * 1000 * this.limitDay)
         this.endDate = enddate.toISOString().substr(0, 10)
+      } else {
+        if (startdate.getTime() < enddate.getTime() - 24 * 60 * 60 * 1000 * this.limitDay) {
+          enddate = new Date(startdate.getTime() + 24 * 60 * 60 * 1000 * this.limitDay)
+          this.endDate = enddate.toISOString().substr(0, 10)
+        }
       }
     }
   },
   data: () => ({
     startDate: '2000-01-01',
+    limitDay: 365,
     startMenu: false,
     endDate: '2000-03-01',
     endMenu: false,
@@ -155,7 +168,7 @@ export default {
     maxEndDate: function () {
       const startdate = new Date(this.startDate)
       const enddate = new Date(startdate)
-      enddate.setDate(startdate.getDate() + 90)
+      enddate.setDate(startdate.getDate() + this.limitDay)
       return enddate.toISOString().substr(0, 10)
     }
   },

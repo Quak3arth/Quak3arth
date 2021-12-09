@@ -10,6 +10,7 @@
           :position-x="tooltip.position.x"
           :position-y="tooltip.position.y"
           :close-on-click="false"
+          :close-on-content-click="false"
           offset-y
         >
           <v-card
@@ -18,7 +19,22 @@
           elevation="2"
           outlined
           >
-            <div class="white--text"> 信息 </div>
+            <v-chip-group
+              mandatory
+              column
+              >
+              <v-chip
+                v-for = "earthquake in selectedEarthquake"
+                :key="earthquake.info.id"
+                @focus="focusedEarthquake=earthquake"
+                color="white"
+                outlined
+              >
+                {{earthquake.info.name}}
+              </v-chip>
+            </v-chip-group>
+            <v-spacer/>
+            <div class="white--text"> 地震信息 </div>
             <v-spacer></v-spacer>
             <span class="white--text">
               地震编号：{{tooltip.content.name}} <br>
@@ -45,7 +61,6 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass'
-
 import { BLH2XYZ } from '@/plugins/utils'
 
 var THREE = require('three')
@@ -63,14 +78,42 @@ var composer
 var renderPass
 var outlinePass
 var effectFXAA
-
+var pointMaterial = new THREE.MeshBasicMaterial({
+  map: new THREE.TextureLoader().load(require('@/assets/label.png')),
+  transparent: true,
+  side: THREE.DoubleSide,
+  depthWrite: false
+})
+var pointGeometry = new THREE.CircleGeometry(0.5, 16)
+var lightCylinderPlane = new THREE.PlaneGeometry(4, 10)
+lightCylinderPlane.rotateX(Math.PI / 2)
+lightCylinderPlane.translate(0, 0, 4)
+var lightCylinderMaterial = new THREE.MeshBasicMaterial(
+  {
+    map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
+    color: 0x44ffaa,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  }
+)
+var waveMaterial = new THREE.MeshBasicMaterial(
+  {
+    color: 0x22ffcc,
+    map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
+    transparent: true,
+    opacity: 1.0,
+    depthWrite: false
+  }
+)
+var waveGeometry = new THREE.CircleGeometry(0.5, 16)
 export default {
   name: 'earthMap',
   data: () => ({
     earthMapHeight: undefined,
     earthMapWidth: undefined,
     focusedEarthquake: undefined,
-    selectedEarthquakes: [],
+    selectedEarthquake: [],
     earthRadius: 640,
     tooltip: {
       showDetails: false,
@@ -109,44 +152,6 @@ export default {
     this.earthMapWidth = this.$el.offsetWidth
     this.renderEarth(this.$refs.earth)
 
-    // const seperatemouseMove = (event) => {
-    //   this.$refs.earth.onmousemove = null
-    //   // event.preventDefault()
-    //   setTimeout(() => {
-    //     this.$refs.earth.onmousemove = seperatemouseMove
-    //   }, 100)
-    //   if (testOnEarth(event)) {
-    //     controls.autoRotate = false
-    //     if (!mouseDown) {
-    //       const nowHoverEarthquakeArray = getIntersectEarthquake(event)
-    //       // for (const earthquake of nowHoverEarthquakeArray) {
-    //       // console.log(earthquake)
-    //       outlinePass.selectedObjects = highlight(nowHoverEarthquakeArray)
-    //       // }
-    //       // outlinePass.selectedObjects = nowHoverEarthquakeArray
-    //     }
-    //   } else {
-    //     controls.autoRotate = true
-    //   }
-    // }
-    // this.$refs.earth.onmousemove = seperatemouseMove
-    // this.$refs.earth.addEventListener('mousemove', (event) => {
-    //   event.preventDefault()
-    //   if (testOnEarth(event)) {
-    //     controls.autoRotate = false
-    //     if (!mouseDown) {
-    //       const nowHoverEarthquakeArray = getIntersectEarthquake(event)
-    //       for (const earthquake of nowHoverEarthquakeArray) {
-    //       for (const earthquake of nowHoverEarthquakeArray) {
-    //         highlight(earthquake)
-    //       }
-    //       // outlinePass.selectedObjects = nowHoverEarthquakeArray
-    //     }
-    //   } else {
-    //     controls.autoRotate = true
-    //   }
-    // })
-
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
     var erd = elementResizeDetectorMaker()
@@ -158,7 +163,6 @@ export default {
     })
   },
   created () {
-    // console.log(this.jsonData)
   },
   watch: {
     earthquakeArray: {
@@ -167,20 +171,6 @@ export default {
       },
       deep: true
     },
-    // selectedEarthquakes: {
-    //   handler (newValue, oldValue) {
-    //     if (newValue) {
-    //       if (newValue === []) {
-    //
-    //       } else {
-    //
-    //       }
-    //     } else {
-    //
-    //     }
-    //   },
-    //   deep: true
-    // },
     freeze: {
       handler (newValue, oldValue) {
         if (newValue === true) {
@@ -198,7 +188,6 @@ export default {
         }
       }
     },
-
     focusedEarthquake: {
       handler (newValue, oldValue) {
         if (newValue) {
@@ -249,10 +238,8 @@ export default {
       var intersectObjects = raycaster.intersectObjects(quakeGroup.children)
       var earthquake = []
       for (const obj of intersectObjects) {
-        if (obj.object.name === 'point' || obj.object.name === 'wave') {
+        if (obj.object.name === 'point') {
           earthquake.push(obj.object.parent)
-        } else if (obj.object.name === 'lightCylinder') {
-          earthquake.push(obj.object.parent.parent)
         }
       }
       return [...new Set(earthquake)]
@@ -273,19 +260,18 @@ export default {
     initOutline () {
       outlinePass = new OutlinePass(new THREE.Vector2(this.earthMapWidth, this.earthMapHeight), scene, camera, [])
       outlinePass.selectedObjects = []
-      outlinePass.edgeStrength = 1.0 // 边框的亮度
-      outlinePass.edgeGlow = 0.2 // 光晕[0,1]
-      outlinePass.usePatternTexture = true // 是否使用父级的材质
-      outlinePass.edgeThickness = 0 // 边框宽度
+      outlinePass.edgeStrength = 4 // 边框的亮度
+      outlinePass.edgeGlow = 0.8 // 光晕[0,1]
+      outlinePass.usePatternTexture = false // 是否使用父级的材质
+      outlinePass.edgeThickness = 4 // 边框宽度
       outlinePass.downSampleRatio = 2 // 边框弯曲度
       outlinePass.pulsePeriod = 5 // 呼吸闪烁的速度
-      outlinePass.visibleEdgeColor.set('#ffffff') // 呼吸显示的颜色
+      outlinePass.visibleEdgeColor.set('rgb(215,120,246)') // 呼吸显示的颜色
       outlinePass.hiddenEdgeColor = new THREE.Color(0, 0, 0) // 呼吸消失的颜色
       outlinePass.clear = true
       composer.addPass(outlinePass)
     },
     renderResize () {
-      // console.log(this.camera)
       camera.aspect = this.earthMapWidth / this.earthMapHeight
       camera.updateProjectionMatrix()
       renderer.setSize(this.earthMapWidth, this.earthMapHeight)
@@ -421,7 +407,7 @@ export default {
         waveList.forEach(
           (wave) => {
             wave._ratio += 0.007
-            wave.scale.set(wave._ratio, wave._ratio, wave._ratio)
+            wave.scale.set(wave._ratio * wave._originscale, wave._ratio * wave._originscale, wave._ratio * wave._originscale)
             if (wave._ratio <= 1.5) {
               wave.material.opacity = (wave._ratio - 1) * 2
             } else if (wave._ratio <= 2) {
@@ -434,56 +420,37 @@ export default {
       }
     },
     getQuakeLabel (position, magnitude, radius = this.earthRadius) {
-      // point label
-      var pointMaterial = new THREE.MeshBasicMaterial({
-        map: new THREE.TextureLoader().load(require('@/assets/label.png')),
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthWrite: false
-      })
-      var pointGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
-      var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
-      pointMesh.position.set(position.x, position.y, position.z)
-      pointMesh.name = 'point'
-      // light cylinder
-      var lightCylinderPlane = new THREE.PlaneGeometry(0.004 * radius * magnitude, 0.01 * radius * magnitude)
-      lightCylinderPlane.rotateX(Math.PI / 2)
-      lightCylinderPlane.translate(0, 0, 0.004 * radius * magnitude)
-      var lightCylinderMaterial = new THREE.MeshBasicMaterial(
-        {
-          map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
-          color: 0x44ffaa,
-          transparent: true,
-          side: THREE.DoubleSide,
-          depthWrite: false
-        }
-      )
-      var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
-      lightCylinderMesh.name = 'lightCylinder'
-      var lightCylinderGroup = new THREE.Group()
-      lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
-      lightCylinderGroup.position.set(position.x, position.y, position.z)
-      lightCylinderGroup.name = 'lightCylinderGroup'
-      // wave
-      var waveMaterial = new THREE.MeshBasicMaterial(
-        {
-          color: 0x22ffcc,
-          map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
-          transparent: true,
-          opacity: 1.0,
-          depthWrite: false
-        }
-      )
-      var waveGeometry = new THREE.PlaneGeometry(0.01 * radius * magnitude, 0.01 * radius * magnitude)
-      var waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
-      waveMesh.position.set(position.x, position.y, position.z)
-      waveMesh._ratio = 1.0 + Math.random()
-      waveMesh.name = 'wave'
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
       var normalXYZ = new THREE.Vector3(0, 0, 1)
+      // point label
+      var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
+      pointMesh.scale.set(0.008 * radius * magnitude, 0.008 * radius * magnitude, 1)
+      pointMesh.position.set(position.x, position.y, position.z)
+      pointMesh.name = 'point'
       pointMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
-      lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
-      waveMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      // light cylinder
+      var lightCylinderGroup = null
+      if (magnitude > 5) {
+        var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
+        lightCylinderMesh.scale.set(0.0012 * radius * magnitude, 0.0012 * radius * magnitude, 0.0012 * radius * magnitude)
+        lightCylinderMesh.name = 'lightCylinder'
+        lightCylinderGroup = new THREE.Group()
+        lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
+        lightCylinderGroup.position.set(position.x, position.y, position.z)
+        lightCylinderGroup.name = 'lightCylinderGroup'
+        lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      }
+      // wave
+      var waveMesh = null
+      if (magnitude > 7) {
+        waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
+        waveMesh.scale.set(0.01 * radius * magnitude)
+        waveMesh.position.set(position.x, position.y, position.z)
+        waveMesh._originscale = 0.01 * radius * magnitude
+        waveMesh._ratio = 1.0 + Math.random()
+        waveMesh.name = 'wave'
+        waveMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      }
       return {
         label: pointMesh,
         lightCylinder: lightCylinderGroup,
@@ -498,19 +465,24 @@ export default {
       }
       waveList = []
       for (var i = 0; i < earthQuakeArray.length; i++) {
-        if (i >= 1000) {
-          break
-        }
         var lat = earthQuakeArray[i].location.latitude
         var lng = earthQuakeArray[i].location.longitude
         var magnitude = earthQuakeArray[i].magnitude
         var position = BLH2XYZ(lng, lat, radius * 1.005)
         const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
         var earthquake = new THREE.Group()
-        earthquake.add(label, lightCylinder, wave)
+        if (label) {
+          earthquake.add(label)
+        }
+        if (lightCylinder) {
+          earthquake.add(lightCylinder)
+        }
+        if (wave) {
+          earthquake.add(wave)
+          waveList.push(wave)
+        }
         earthquake.name = 'earthquake'
         earthquake.info = earthQuakeArray[i]
-        waveList.push(wave)
         quakeGroup.add(earthquake)
       }
       return quakeGroup
