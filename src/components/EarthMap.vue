@@ -63,7 +63,35 @@ var composer
 var renderPass
 var outlinePass
 var effectFXAA
-
+var pointMaterial = new THREE.MeshBasicMaterial({
+  map: new THREE.TextureLoader().load(require('@/assets/label.png')),
+  transparent: true,
+  side: THREE.DoubleSide,
+  depthWrite: false
+})
+var pointGeometry = new THREE.PlaneGeometry(1, 1)
+var lightCylinderPlane = new THREE.PlaneGeometry(4, 10)
+lightCylinderPlane.rotateX(Math.PI / 2)
+lightCylinderPlane.translate(0, 0, 4)
+var lightCylinderMaterial = new THREE.MeshBasicMaterial(
+  {
+    map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
+    color: 0x44ffaa,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  }
+)
+var waveMaterial = new THREE.MeshBasicMaterial(
+  {
+    color: 0x22ffcc,
+    map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
+    transparent: true,
+    opacity: 1.0,
+    depthWrite: false
+  }
+)
+var waveGeometry = new THREE.PlaneGeometry(1, 1)
 export default {
   name: 'earthMap',
   data: () => ({
@@ -421,7 +449,7 @@ export default {
         waveList.forEach(
           (wave) => {
             wave._ratio += 0.007
-            wave.scale.set(wave._ratio, wave._ratio, wave._ratio)
+            wave.scale.set(wave._ratio * wave._originscale, wave._ratio * wave._originscale, wave._ratio * wave._originscale)
             if (wave._ratio <= 1.5) {
               wave.material.opacity = (wave._ratio - 1) * 2
             } else if (wave._ratio <= 2) {
@@ -435,48 +463,25 @@ export default {
     },
     getQuakeLabel (position, magnitude, radius = this.earthRadius) {
       // point label
-      var pointMaterial = new THREE.MeshBasicMaterial({
-        map: new THREE.TextureLoader().load(require('@/assets/label.png')),
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthWrite: false
-      })
-      var pointGeometry = new THREE.PlaneGeometry(0.008 * radius * magnitude, 0.008 * radius * magnitude)
+
       var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
+      pointMesh.scale.set(0.008 * radius * magnitude, 0.008 * radius * magnitude, 1)
       pointMesh.position.set(position.x, position.y, position.z)
       pointMesh.name = 'point'
       // light cylinder
-      var lightCylinderPlane = new THREE.PlaneGeometry(0.004 * radius * magnitude, 0.01 * radius * magnitude)
-      lightCylinderPlane.rotateX(Math.PI / 2)
-      lightCylinderPlane.translate(0, 0, 0.004 * radius * magnitude)
-      var lightCylinderMaterial = new THREE.MeshBasicMaterial(
-        {
-          map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
-          color: 0x44ffaa,
-          transparent: true,
-          side: THREE.DoubleSide,
-          depthWrite: false
-        }
-      )
       var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
+      lightCylinderMesh.scale.set(0.0012 * radius * magnitude, 0.0012 * radius * magnitude, 0.0012 * radius * magnitude)
       lightCylinderMesh.name = 'lightCylinder'
       var lightCylinderGroup = new THREE.Group()
       lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
       lightCylinderGroup.position.set(position.x, position.y, position.z)
       lightCylinderGroup.name = 'lightCylinderGroup'
       // wave
-      var waveMaterial = new THREE.MeshBasicMaterial(
-        {
-          color: 0x22ffcc,
-          map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
-          transparent: true,
-          opacity: 1.0,
-          depthWrite: false
-        }
-      )
-      var waveGeometry = new THREE.PlaneGeometry(0.01 * radius * magnitude, 0.01 * radius * magnitude)
+
       var waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
+      waveMesh.scale.set(0.01 * radius * magnitude)
       waveMesh.position.set(position.x, position.y, position.z)
+      waveMesh._originscale = 0.01 * radius * magnitude
       waveMesh._ratio = 1.0 + Math.random()
       waveMesh.name = 'wave'
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
@@ -498,9 +503,6 @@ export default {
       }
       waveList = []
       for (var i = 0; i < earthQuakeArray.length; i++) {
-        if (i >= 1000) {
-          break
-        }
         var lat = earthQuakeArray[i].location.latitude
         var lng = earthQuakeArray[i].location.longitude
         var magnitude = earthQuakeArray[i].magnitude
