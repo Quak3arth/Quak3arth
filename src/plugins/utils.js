@@ -1,4 +1,4 @@
-import earthquakeJson from '@/assets/earthquake_v2.json'
+import earthquakeJson from '@/assets/earthquake.json'
 export { BLH2XYZ }
 export { getEarthquakeRelations }
 export { getEarthquakeByDateAndMag }
@@ -29,8 +29,9 @@ function getEarthquakeRelations (clickId) {
 
 function getEarthquakeByDateAndMag (startDate, endDate, minMagnitude, maxMagnitude) {
   var earthquakes = []
-  var start = new Date(startDate + " 00:00:00")
-  var end = new Date(endDate + " 23:59:59")
+  var start = new Date(startDate + ' 00:00:00')
+  var end = new Date(endDate + ' 23:59:59')
+
   for (let i = 0; i < earthquakeJson.length; i++) {
     const date = new Date(earthquakeJson[i].date)
     if (date > end) {
@@ -44,4 +45,3 @@ function getEarthquakeByDateAndMag (startDate, endDate, minMagnitude, maxMagnitu
   }
   return earthquakes
 }
-
