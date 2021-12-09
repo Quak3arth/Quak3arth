@@ -63,7 +63,6 @@ var composer
 var renderPass
 var outlinePass
 var effectFXAA
-var selectedObjects
 
 export default {
   name: 'earthMap',
@@ -109,45 +108,6 @@ export default {
     this.earthMapHeight = this.$el.offsetHeight
     this.earthMapWidth = this.$el.offsetWidth
     this.renderEarth(this.$refs.earth)
-    var earthDOM = this.$refs.earth
-    const getIntersectEarthquake = (event) => {
-      // event.preventDefault()
-      var rect = earthDOM.getBoundingClientRect()
-      var raycaster = new THREE.Raycaster()
-      const o = new THREE.Vector3(0, 0, 0)
-      raycaster.near = Math.max(0.1, Math.max(0.1, camera.position.distanceTo(0) - 0.8 * this.earthRadius) - 0.8 * this.earthRadius)
-      raycaster.far = Math.sqrt(camera.position.distanceTo(o) ^ 2 + 1.1 * this.earthRadius ^ 2)
-      var mouse = new THREE.Vector2()
-      var x = event.clientX - rect.left * (earthDOM.width / rect.width)
-      var y = event.clientY - rect.top * (earthDOM.height / rect.height)
-      mouse.x = (x / earthDOM.width) * 2 - 1
-      mouse.y = -(y / earthDOM.height) * 2 + 1
-      if (camera) {
-        raycaster.setFromCamera(mouse, camera)
-      }
-      var intersectObjects = raycaster.intersectObjects(quakeGroup.children)
-      var earthquake = []
-      for (const obj of intersectObjects) {
-        if (obj.object.name === 'point' || obj.object.name === 'wave') {
-          earthquake.push(obj.object.parent)
-        } else if (obj.object.name === 'lightCylinder') {
-          earthquake.push(obj.object.parent.parent)
-        }
-      }
-      return [...new Set(earthquake)]
-    }
-    const testEarthquakeList = (quakelist) => {
-      if (quakelist) {
-        this.selectedEarthquake = quakelist
-        if (quakelist.length <= 0) {
-          this.focusedEarthquake = undefined
-        } else {
-          this.focusedEarthquake = this.selectedEarthquake[0]
-        }
-      } else {
-        this.selectedEarthquake = []
-      }
-    }
 
     // const seperatemouseMove = (event) => {
     //   this.$refs.earth.onmousemove = null
@@ -226,22 +186,39 @@ export default {
         if (newValue === true) {
           this.$refs.earth.onclick = (event) => {
             event.preventDefault()
-            this.tooltip.showDetails = true
+            this.tooltip.showDetails = false
+            var list = this.getIntersectEarthquake(event)
+            this.testEarthquakeList(list)
             this.tooltip.position.x = event.clientX
             this.tooltip.position.y = event.clientY
           }
         } else {
+          this.tooltip.showDetails = false
           this.$refs.earth.onclick = null
         }
-      },
-      immediate: true
+      }
     },
 
     focusedEarthquake: {
       handler (newValue, oldValue) {
-        // this.tooltip.
-      },
-      deep: true
+        if (newValue) {
+          const { category, date, depth, details, id, location, magnitude, name } = newValue.info
+          this.tooltip.content.date = date
+          this.tooltip.content.category = category
+          this.tooltip.content.description = details
+          this.tooltip.content.depth = depth
+          this.tooltip.content.name = name
+          this.tooltip.content.id = id
+          this.tooltip.content.magnitude = magnitude
+          this.tooltip.content.location.latitude = location.latitude
+          this.tooltip.content.location.longitude = location.longitude
+          outlinePass.selectedObjects = [newValue.children[0]]
+          this.tooltip.showDetails = true
+        } else {
+          this.tooltip.showDetails = false
+          outlinePass.selectedObjects = []
+        }
+      }
     }
   },
   methods: {
@@ -252,6 +229,46 @@ export default {
       effectFXAA.uniforms.resolution.value.set(1 / this.earthMapWidth, 1 / this.earthMapHeight)
       effectFXAA.renderToScreen = true
       composer.addPass(effectFXAA)
+    },
+    getIntersectEarthquake  (event) {
+      // event.preventDefault()
+      var earthDOM = this.$refs.earth
+      var rect = earthDOM.getBoundingClientRect()
+      var raycaster = new THREE.Raycaster()
+      const o = new THREE.Vector3(0, 0, 0)
+      raycaster.near = Math.max(0.1, camera.position.distanceTo(o) - 1.2 * this.earthRadius)
+      raycaster.far = Math.sqrt(camera.position.distanceTo(o) ** 2 + 1.1 * this.earthRadius ** 2)
+      var mouse = new THREE.Vector2()
+      var x = event.clientX - rect.left * (earthDOM.width / rect.width)
+      var y = event.clientY - rect.top * (earthDOM.height / rect.height)
+      mouse.x = (x / earthDOM.width) * 2 - 1
+      mouse.y = -(y / earthDOM.height) * 2 + 1
+      if (camera) {
+        raycaster.setFromCamera(mouse, camera)
+      }
+      var intersectObjects = raycaster.intersectObjects(quakeGroup.children)
+      var earthquake = []
+      for (const obj of intersectObjects) {
+        if (obj.object.name === 'point' || obj.object.name === 'wave') {
+          earthquake.push(obj.object.parent)
+        } else if (obj.object.name === 'lightCylinder') {
+          earthquake.push(obj.object.parent.parent)
+        }
+      }
+      return [...new Set(earthquake)]
+    },
+    testEarthquakeList  (quakelist) {
+      if (quakelist) {
+        this.selectedEarthquake = quakelist
+        if (quakelist.length <= 0) {
+          this.focusedEarthquake = null
+        } else {
+          this.focusedEarthquake = this.selectedEarthquake[0]
+        }
+      } else {
+        this.selectedEarthquake = []
+        this.focusedEarthquake = null
+      }
     },
     initOutline () {
       outlinePass = new OutlinePass(new THREE.Vector2(this.earthMapWidth, this.earthMapHeight), scene, camera, [])

@@ -64,7 +64,6 @@
           v-model="endMenu"
           transition="scale-transition"
           offset-y
-          full-width
         >
           <template v-slot:activator="{ on, attrs }">
             <v-text-field
