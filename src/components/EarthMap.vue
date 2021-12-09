@@ -45,7 +45,6 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass'
-
 import { BLH2XYZ } from '@/plugins/utils'
 
 var THREE = require('three')
@@ -69,7 +68,7 @@ var pointMaterial = new THREE.MeshBasicMaterial({
   side: THREE.DoubleSide,
   depthWrite: false
 })
-var pointGeometry = new THREE.PlaneGeometry(1, 1)
+var pointGeometry = new THREE.CircleGeometry(0.5)
 var lightCylinderPlane = new THREE.PlaneGeometry(4, 10)
 lightCylinderPlane.rotateX(Math.PI / 2)
 lightCylinderPlane.translate(0, 0, 4)
@@ -91,7 +90,7 @@ var waveMaterial = new THREE.MeshBasicMaterial(
     depthWrite: false
   }
 )
-var waveGeometry = new THREE.PlaneGeometry(1, 1)
+var waveGeometry = new THREE.CircleGeometry(0.5)
 export default {
   name: 'earthMap',
   data: () => ({
@@ -137,44 +136,6 @@ export default {
     this.earthMapWidth = this.$el.offsetWidth
     this.renderEarth(this.$refs.earth)
 
-    // const seperatemouseMove = (event) => {
-    //   this.$refs.earth.onmousemove = null
-    //   // event.preventDefault()
-    //   setTimeout(() => {
-    //     this.$refs.earth.onmousemove = seperatemouseMove
-    //   }, 100)
-    //   if (testOnEarth(event)) {
-    //     controls.autoRotate = false
-    //     if (!mouseDown) {
-    //       const nowHoverEarthquakeArray = getIntersectEarthquake(event)
-    //       // for (const earthquake of nowHoverEarthquakeArray) {
-    //       // console.log(earthquake)
-    //       outlinePass.selectedObjects = highlight(nowHoverEarthquakeArray)
-    //       // }
-    //       // outlinePass.selectedObjects = nowHoverEarthquakeArray
-    //     }
-    //   } else {
-    //     controls.autoRotate = true
-    //   }
-    // }
-    // this.$refs.earth.onmousemove = seperatemouseMove
-    // this.$refs.earth.addEventListener('mousemove', (event) => {
-    //   event.preventDefault()
-    //   if (testOnEarth(event)) {
-    //     controls.autoRotate = false
-    //     if (!mouseDown) {
-    //       const nowHoverEarthquakeArray = getIntersectEarthquake(event)
-    //       for (const earthquake of nowHoverEarthquakeArray) {
-    //       for (const earthquake of nowHoverEarthquakeArray) {
-    //         highlight(earthquake)
-    //       }
-    //       // outlinePass.selectedObjects = nowHoverEarthquakeArray
-    //     }
-    //   } else {
-    //     controls.autoRotate = true
-    //   }
-    // })
-
     this.animate()
     var elementResizeDetectorMaker = require('element-resize-detector')
     var erd = elementResizeDetectorMaker()
@@ -186,7 +147,6 @@ export default {
     })
   },
   created () {
-    // console.log(this.jsonData)
   },
   watch: {
     earthquakeArray: {
@@ -301,13 +261,13 @@ export default {
     initOutline () {
       outlinePass = new OutlinePass(new THREE.Vector2(this.earthMapWidth, this.earthMapHeight), scene, camera, [])
       outlinePass.selectedObjects = []
-      outlinePass.edgeStrength = 1.0 // 边框的亮度
-      outlinePass.edgeGlow = 0.2 // 光晕[0,1]
-      outlinePass.usePatternTexture = true // 是否使用父级的材质
-      outlinePass.edgeThickness = 0 // 边框宽度
+      outlinePass.edgeStrength = 4 // 边框的亮度
+      outlinePass.edgeGlow = 0.8 // 光晕[0,1]
+      outlinePass.usePatternTexture = false // 是否使用父级的材质
+      outlinePass.edgeThickness = 4 // 边框宽度
       outlinePass.downSampleRatio = 2 // 边框弯曲度
       outlinePass.pulsePeriod = 5 // 呼吸闪烁的速度
-      outlinePass.visibleEdgeColor.set('#ffffff') // 呼吸显示的颜色
+      outlinePass.visibleEdgeColor.set('rgb(215,120,246)') // 呼吸显示的颜色
       outlinePass.hiddenEdgeColor = new THREE.Color(0, 0, 0) // 呼吸消失的颜色
       outlinePass.clear = true
       composer.addPass(outlinePass)
@@ -462,33 +422,37 @@ export default {
       }
     },
     getQuakeLabel (position, magnitude, radius = this.earthRadius) {
+      var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
+      var normalXYZ = new THREE.Vector3(0, 0, 1)
       // point label
-
       var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
       pointMesh.scale.set(0.008 * radius * magnitude, 0.008 * radius * magnitude, 1)
       pointMesh.position.set(position.x, position.y, position.z)
       pointMesh.name = 'point'
-      // light cylinder
-      var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
-      lightCylinderMesh.scale.set(0.0012 * radius * magnitude, 0.0012 * radius * magnitude, 0.0012 * radius * magnitude)
-      lightCylinderMesh.name = 'lightCylinder'
-      var lightCylinderGroup = new THREE.Group()
-      lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
-      lightCylinderGroup.position.set(position.x, position.y, position.z)
-      lightCylinderGroup.name = 'lightCylinderGroup'
-      // wave
-
-      var waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
-      waveMesh.scale.set(0.01 * radius * magnitude)
-      waveMesh.position.set(position.x, position.y, position.z)
-      waveMesh._originscale = 0.01 * radius * magnitude
-      waveMesh._ratio = 1.0 + Math.random()
-      waveMesh.name = 'wave'
-      var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
-      var normalXYZ = new THREE.Vector3(0, 0, 1)
       pointMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
-      lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
-      waveMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      // light cylinder
+      var lightCylinderGroup = null
+      if (magnitude > 5) {
+        var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
+        lightCylinderMesh.scale.set(0.0012 * radius * magnitude, 0.0012 * radius * magnitude, 0.0012 * radius * magnitude)
+        lightCylinderMesh.name = 'lightCylinder'
+        lightCylinderGroup = new THREE.Group()
+        lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
+        lightCylinderGroup.position.set(position.x, position.y, position.z)
+        lightCylinderGroup.name = 'lightCylinderGroup'
+        lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      }
+      // wave
+      var waveMesh = null
+      if (magnitude > 7) {
+        waveMesh = new THREE.Mesh(waveGeometry, waveMaterial)
+        waveMesh.scale.set(0.01 * radius * magnitude)
+        waveMesh.position.set(position.x, position.y, position.z)
+        waveMesh._originscale = 0.01 * radius * magnitude
+        waveMesh._ratio = 1.0 + Math.random()
+        waveMesh.name = 'wave'
+        waveMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
+      }
       return {
         label: pointMesh,
         lightCylinder: lightCylinderGroup,
@@ -509,10 +473,18 @@ export default {
         var position = BLH2XYZ(lng, lat, radius * 1.005)
         const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
         var earthquake = new THREE.Group()
-        earthquake.add(label, lightCylinder, wave)
+        if (label) {
+          earthquake.add(label)
+        }
+        if (lightCylinder) {
+          earthquake.add(lightCylinder)
+        }
+        if (wave) {
+          earthquake.add(wave)
+          waveList.push(wave)
+        }
         earthquake.name = 'earthquake'
         earthquake.info = earthQuakeArray[i]
-        waveList.push(wave)
         quakeGroup.add(earthquake)
       }
       return quakeGroup

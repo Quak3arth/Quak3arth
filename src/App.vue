@@ -148,7 +148,7 @@ export default {
   },
   data: () => ({
     startDate: '2000-01-01',
-    limitDay: 180,
+    limitDay: 365,
     startMenu: false,
     endDate: '2000-03-01',
     endMenu: false,
