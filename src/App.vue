@@ -7,6 +7,7 @@
       app
       dark
     >
+      <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
       <v-app-bar-title>地震可视化分析</v-app-bar-title>
       <v-spacer></v-spacer>
       <v-btn
@@ -20,6 +21,7 @@
     </v-app-bar>
     <v-navigation-drawer
       app
+      v-model="drawer"
     >
       <v-card
         style="display: grid; gap: 8px;padding: 8px;"
@@ -104,7 +106,8 @@
           v-model="magnitudeRange"
           :min="4.5"
           :max="10"
-          thumb-label
+          thumb-label="always"
+          :thumb-size="24"
           prepend-icon="mdi-minus"
           append-icon="mdi-plus"
           step="0.1"
@@ -150,6 +153,7 @@ export default {
     }
   },
   data: () => ({
+    drawer: true,
     startDate: '2000-01-01',
     limitDay: 365,
     startMenu: false,
