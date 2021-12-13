@@ -82,36 +82,113 @@ var composer
 var renderPass
 var outlinePass
 var effectFXAA
-var pointMaterial = new THREE.MeshBasicMaterial({
-  map: new THREE.TextureLoader().load(require('@/assets/label.png')),
-  transparent: true,
-  side: THREE.DoubleSide,
-  depthWrite: false
-})
+var wave_ratio = 1.0 + Math.random()
 var pointGeometry = new THREE.CircleGeometry(0.5, 16)
 var lightCylinderPlane = new THREE.PlaneGeometry(4, 10)
 lightCylinderPlane.rotateX(Math.PI / 2)
 lightCylinderPlane.translate(0, 0, 4)
-// console.log(new THREE.TextureLoader().load(require('@/assets/light_column.png')))
-var lightCylinderMaterial = new THREE.MeshBasicMaterial(
+var waveGeometry = new THREE.CircleGeometry(0.5, 16)
+var pointMaterial_1 = new THREE.MeshBasicMaterial({
+  map: new THREE.TextureLoader().load(require('@/assets/label.png')),
+  color: '#ffff00',
+  transparent: true,
+  side: THREE.DoubleSide,
+  depthWrite: false
+})
+
+var lightCylinderMaterial_1 = new THREE.MeshBasicMaterial(
   {
     map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
-    color: 0x44ffaa,
+    color: '#ffff00',
     transparent: true,
     side: THREE.DoubleSide,
     depthWrite: false
   }
 )
-var waveMaterial = new THREE.MeshBasicMaterial(
+var waveMaterial_1 = new THREE.MeshBasicMaterial(
   {
-    color: 0x22ffcc,
+    color: '#f8f834',
     map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
     transparent: true,
     opacity: 1.0,
     depthWrite: false
   }
 )
-var waveGeometry = new THREE.CircleGeometry(0.5, 16)
+
+var pointMaterial_2 = new THREE.MeshBasicMaterial({
+  map: new THREE.TextureLoader().load(require('@/assets/label.png')),
+  color: '#ff7d00',
+  transparent: true,
+  side: THREE.DoubleSide,
+  depthWrite: false
+})
+
+var lightCylinderMaterial_2 = new THREE.MeshBasicMaterial(
+  {
+    map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
+    color: '#ff7d00',
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  }
+)
+var waveMaterial_2 = new THREE.MeshBasicMaterial(
+  {
+    color: '#fdca9b',
+    map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
+    transparent: true,
+    opacity: 1.0,
+    depthWrite: false
+  }
+)
+var pointMaterial_3 = new THREE.MeshBasicMaterial({
+  map: new THREE.TextureLoader().load(require('@/assets/label.png')),
+  color: '#ff0000',
+  transparent: true,
+  side: THREE.DoubleSide,
+  depthWrite: false
+})
+
+var lightCylinderMaterial_3 = new THREE.MeshBasicMaterial(
+  {
+    map: new THREE.TextureLoader().load(require('@/assets/light_column.png')),
+    color: '#ff0000',
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  }
+)
+var waveMaterial_3 = new THREE.MeshBasicMaterial(
+  {
+    color: '#fa7575',
+    map: new THREE.TextureLoader().load(require('@/assets/label_wave.png')),
+    transparent: true,
+    opacity: 1.0,
+    depthWrite: false
+  }
+)
+
+function getMaterial (magnitude) {
+  if (magnitude <= 5) {
+    return {
+      pointMaterial: pointMaterial_1,
+      lightCylinderMaterial: lightCylinderMaterial_1,
+      waveMaterial: waveMaterial_1
+    }
+  } else if (magnitude < 7) {
+    return {
+      pointMaterial: pointMaterial_2,
+      lightCylinderMaterial: lightCylinderMaterial_2,
+      waveMaterial: waveMaterial_2
+    }
+  } else if (magnitude >= 7) {
+    return {
+      pointMaterial: pointMaterial_3,
+      lightCylinderMaterial: lightCylinderMaterial_3,
+      waveMaterial: waveMaterial_3
+    }
+  }
+}
 export default {
   name: 'earthMap',
   data: () => ({
@@ -225,7 +302,6 @@ export default {
       composer.addPass(effectFXAA)
     },
     getIntersectEarthquake  (event) {
-      // event.preventDefault()
       var earthDOM = this.$refs.earth
       var rect = earthDOM.getBoundingClientRect()
       var raycaster = new THREE.Raycaster()
@@ -295,50 +371,50 @@ export default {
       return camera
     },
     initPoints () {
-		  var texture = new THREE.TextureLoader().load(require('@/assets/gradient.png'))
-		  const positions = []
-		  const colors = []
-		  const geometry = new THREE.BufferGeometry()
-		  for (var i = 0; i < 10000; i++) {
-			  var vertex = new THREE.Vector3()
-			  vertex.x = Math.random() * 2 - 1
-			  vertex.y = Math.random() * 2 - 1
-			  vertex.z = Math.random() * 2 - 1
-			  positions.push(vertex.x, vertex.y, vertex.z)
-			  var color = new THREE.Color()
-			  color.setHSL(Math.random() * 0.2 + 0.5, 0.55, Math.random() * 0.25 + 0.55)
-			  colors.push(color.r, color.g, color.b)
-		  }
+      var texture = new THREE.TextureLoader().load(require('@/assets/gradient.png'))
+      const positions = []
+      const colors = []
+      const geometry = new THREE.BufferGeometry()
+      for (var i = 0; i < 10000; i++) {
+        var vertex = new THREE.Vector3()
+        vertex.x = Math.random() * 2 - 1
+        vertex.y = Math.random() * 2 - 1
+        vertex.z = Math.random() * 2 - 1
+        positions.push(vertex.x, vertex.y, vertex.z)
+        var color = new THREE.Color()
+        color.setHSL(Math.random() * 0.2 + 0.5, 0.55, Math.random() * 0.25 + 0.55)
+        colors.push(color.r, color.g, color.b)
+      }
 
-		  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-		  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
       // console.log(geometry)
       console.log(texture)
-		  var starsMaterial = new THREE.PointsMaterial({
-			  map: texture,
-			  size: 15,
-			  transparent: true,
-			  opacity: 1,
-			  vertexColors: true, // true：且该几何体的colors属性有值，则该粒子会舍弃第一个属性--color，而应用该几何体的colors属性的颜色
-			  blending: THREE.AdditiveBlending,
-			  sizeAttenuation: true
-		  })
+      var starsMaterial = new THREE.PointsMaterial({
+        map: texture,
+        size: 15,
+        transparent: true,
+        opacity: 1,
+        vertexColors: true, // true：且该几何体的colors属性有值，则该粒子会舍弃第一个属性--color，而应用该几何体的colors属性的颜色
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true
+      })
 
-		  // stars = new THREE.ParticleSystem( geometry, starsMaterial )
+      // stars = new THREE.ParticleSystem( geometry, starsMaterial )
       stars = new THREE.Points(geometry, starsMaterial)
-		  stars.scale.set(6000, 6000, 6000)
+      stars.scale.set(6000, 6000, 6000)
       console.log(stars)
-		  // scene.add( stars )
+      // scene.add( stars )
       return stars
-	  },
+    },
     getVCenter (v1, v2) {
-		  const v = v1.add(v2)
-		  return v.divideScalar(2)
-	  },
+      const v = v1.add(v2)
+      return v.divideScalar(2)
+    },
     getLenVcetor (v1, v2, len) {
-		  const v1v2Len = v1.distanceTo(v2)
-		  return v1.lerp(v2, len / v1v2Len)
-	  },
+      const v1v2Len = v1.distanceTo(v2)
+      return v1.lerp(v2, len / v1v2Len)
+    },
     line_pos (lng, lat, radius) {
       const phi = (180 + lng) * (Math.PI / 180)
       const theta = (90 - lat) * (Math.PI / 180)
@@ -348,7 +424,7 @@ export default {
       return pos
     },
     addLines (v0, v3) {
-      // 夹角
+    // 夹角
       var angle = (v0.angleTo(v3) * 1.8) / Math.PI / 0.1 // 0 ~ Math.PI
       var aLen = angle * 0.4; var hLen = angle * angle * 12
       var p0 = new THREE.Vector3(0, 0, 0)
@@ -392,7 +468,7 @@ export default {
        */
 
       for (var j = 0; j < points.length; j++) {
-        // color.setHSL( .31666+j*0.005,0.7, 0.7); //绿色
+      // color.setHSL( .31666+j*0.005,0.7, 0.7); //绿色
         color.setHSL(0.81666 + j, 0.88, 0.715 + j * 0.0025) // 粉色
         colors.push(color.r, color.g, color.b)
         positions.push(points[j].x, points[j].y, points[j].z)
@@ -438,23 +514,23 @@ export default {
       lightGroup = new THREE.Group()
       const ambientLight = new THREE.AmbientLight(0xcccccc, 1.1)
       lightGroup.add(ambientLight)
-      var directionalLight = new THREE.DirectionalLight(0xffffff, 0.2)
-      directionalLight.position.set(1, 0.1, 0).normalize()
-      lightGroup.add(directionalLight)
-      var directionalLight2 = new THREE.DirectionalLight(0xff2ffff, 0.2)
-      directionalLight2.position.set(1, 0.1, 0.1).normalize()
-      lightGroup.add(directionalLight2)
-      var hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.2)
-      hemiLight.position.set(0, 1, 0)
-      lightGroup.add(hemiLight)
-      var directionalLight3 = new THREE.DirectionalLight(0xffffff)
-      directionalLight3.position.set(1, 500, -20)
-      directionalLight3.castShadow = true
-      directionalLight3.shadow.camera.top = 18
-      directionalLight3.shadow.camera.bottom = -10
-      directionalLight3.shadow.camera.left = -52
-      directionalLight3.shadow.camera.right = 12
-      lightGroup.add(directionalLight3)
+      // var directionalLight = new THREE.DirectionalLight(0xffffff, 0.2)
+      // directionalLight.position.set(1, 0.1, 0).normalize()
+      // lightGroup.add(directionalLight)
+      // var directionalLight2 = new THREE.DirectionalLight(0xff2ffff, 0.2)
+      // directionalLight2.position.set(1, 0.1, 0.1).normalize()
+      // lightGroup.add(directionalLight2)
+      // var hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.2)
+      // hemiLight.position.set(0, 1, 0)
+      // lightGroup.add(hemiLight)
+      // var directionalLight3 = new THREE.DirectionalLight(0xffffff)
+      // directionalLight3.position.set(1, 500, -20)
+      // directionalLight3.castShadow = true
+      // directionalLight3.shadow.camera.top = 18
+      // directionalLight3.shadow.camera.bottom = -10
+      // directionalLight3.shadow.camera.left = -52
+      // directionalLight3.shadow.camera.right = 12
+      // lightGroup.add(directionalLight3)
       return lightGroup
     },
     initControls () {
@@ -507,7 +583,7 @@ export default {
       if (stars) {
         stars.rotation.y += 0.0001
       }
-      // this.waveSpread()
+      this.waveSpread()
       this.rendering()
       requestAnimationFrame(this.animate)
     },
@@ -518,7 +594,8 @@ export default {
       const earthGroup = this.initEarthGroup()
       const lightGroup = this.initLightGroup()
       scene.add(lightGroup)
-      scene.add(this.initPoints())
+      const background = this.initPoints()
+      scene.add(background)
       const controls = this.initControls()
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
@@ -530,17 +607,21 @@ export default {
     },
     waveSpread () {
       if (waveList) {
+        wave_ratio += 0.007
+        if (wave_ratio <= 1.5) {
+          waveMaterial_1.opacity = (wave_ratio - 1) * 2
+          waveMaterial_2.opacity = (wave_ratio - 1) * 2
+          waveMaterial_3.opacity = (wave_ratio - 1) * 2
+        } else if (wave_ratio <= 2) {
+          waveMaterial_1.opacity = 1 - (wave_ratio - 1.5) * 2
+          waveMaterial_2.opacity = 1 - (wave_ratio - 1.5) * 2
+          waveMaterial_3.opacity = 1 - (wave_ratio - 1.5) * 2
+        } else {
+          wave_ratio = 1.0
+        }
         waveList.forEach(
           (wave) => {
-            wave._ratio += 0.007
-            wave.scale.set(wave._ratio * wave._originscale, wave._ratio * wave._originscale, wave._ratio * wave._originscale)
-            if (wave._ratio <= 1.5) {
-              wave.material.opacity = (wave._ratio - 1) * 2
-            } else if (wave._ratio <= 2) {
-              wave.material.opacity = 1 - (wave._ratio - 1.5) * 2
-            } else {
-              wave._ratio = 1.0
-            }
+            wave.scale.set(wave_ratio * wave._originscale, wave_ratio * wave._originscale, wave_ratio * wave._originscale)
           }
         )
       }
@@ -549,23 +630,21 @@ export default {
       var normalSphere = new THREE.Vector3(position.x, position.y, position.z).normalize()
       var normalXYZ = new THREE.Vector3(0, 0, 1)
       // point label
+      const { pointMaterial, lightCylinderMaterial, waveMaterial } = getMaterial(magnitude)
       var pointMesh = new THREE.Mesh(pointGeometry, pointMaterial)
       pointMesh.scale.set(0.008 * radius * magnitude, 0.008 * radius * magnitude, 1)
       pointMesh.position.set(position.x, position.y, position.z)
       pointMesh.name = 'point'
       pointMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
       // light cylinder
-      var lightCylinderGroup = null
-      if (magnitude > 5) {
-        var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
-        lightCylinderMesh.scale.set(0.0012 * radius * magnitude, 0.0012 * radius * magnitude, 0.0012 * radius * magnitude)
-        lightCylinderMesh.name = 'lightCylinder'
-        lightCylinderGroup = new THREE.Group()
-        lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
-        lightCylinderGroup.position.set(position.x, position.y, position.z)
-        lightCylinderGroup.name = 'lightCylinderGroup'
-        lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
-      }
+      var lightCylinderMesh = new THREE.Mesh(lightCylinderPlane, lightCylinderMaterial)
+      lightCylinderMesh.scale.set(0.0012 * radius * magnitude, 0.0012 * radius * magnitude, 0.0012 * radius * magnitude)
+      lightCylinderMesh.name = 'lightCylinder'
+      const lightCylinderGroup = new THREE.Group()
+      lightCylinderGroup.add(lightCylinderMesh, lightCylinderMesh.clone().rotateZ(Math.PI / 2))
+      lightCylinderGroup.position.set(position.x, position.y, position.z)
+      lightCylinderGroup.name = 'lightCylinderGroup'
+      lightCylinderGroup.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
       // wave
       var waveMesh = null
       if (magnitude > 7) {
@@ -573,7 +652,6 @@ export default {
         waveMesh.scale.set(0.01 * radius * magnitude)
         waveMesh.position.set(position.x, position.y, position.z)
         waveMesh._originscale = 0.01 * radius * magnitude
-        waveMesh._ratio = 1.0 + Math.random()
         waveMesh.name = 'wave'
         waveMesh.quaternion.setFromUnitVectors(normalXYZ, normalSphere)
       }
@@ -603,7 +681,7 @@ export default {
         } else if (i < 100) {
           console.log(begin)
           console.log(linePos)
-          // lines = this.addLines(begin, linePos)
+        // lines = this.addLines(begin, linePos)
         }
         const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
         var earthquake = new THREE.Group()
@@ -620,8 +698,8 @@ export default {
         earthquake.name = 'earthquake'
         earthquake.info = earthQuakeArray[i]
         quakeGroup.add(earthquake)
-        // console.log(lines)
-        // quakeGroup.add(lines)
+      // console.log(lines)
+      // quakeGroup.add(lines)
       }
       return quakeGroup
     }
