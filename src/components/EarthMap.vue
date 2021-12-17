@@ -61,10 +61,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass'
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass'
-import { BLH2XYZ } from '@/plugins/utils'
-// import { Line2 } from '@/plugins/lines/Line2.js'
-// import { LineMaterial } from '@/plugins/lines/LineMaterial.js'
-// import { LineGeometry } from '@/plugins/lines/LineGeometry.js'
+import { Line2 } from 'three/examples/jsm/lines/Line2'
+import { BLH2XYZ, getEarthquakeRelations } from '@/plugins/utils'
 
 var THREE = require('three')
 var camera
@@ -77,12 +75,17 @@ var earthMesh
 var quakeGroup
 var waveList
 let stars
-var begin
 var composer
 var renderPass
 var outlinePass
 var effectFXAA
 var wave_ratio = 1.0 + Math.random()
+var id2earthquake
+var lineMaterial = new THREE.LineBasicMaterial({
+  color: '#ff00ff',
+  linewidth: 10
+})
+var lineGroup
 var pointGeometry = new THREE.CircleGeometry(0.5, 16)
 var lightCylinderPlane = new THREE.PlaneGeometry(4, 10)
 lightCylinderPlane.rotateX(Math.PI / 2)
@@ -285,6 +288,25 @@ export default {
           this.tooltip.content.location.longitude = location.longitude
           outlinePass.selectedObjects = [newValue.children[0]]
           this.tooltip.showDetails = true
+          lineGroup.clear()
+          const associatedIds = getEarthquakeRelations(id)
+          if (associatedIds.length >= 2) {
+            var majorId = associatedIds[0]
+            if (id2earthquake.has(majorId)) {
+              const { latitude, longitude } = id2earthquake.get(majorId).info.location
+              console.log(majorId)
+              var startPosiition = BLH2XYZ(longitude, latitude, this.earthRadius * 1.2)
+              for (var i = 0; i < associatedIds.length; i++) {
+                if (id2earthquake.has(associatedIds[i])) {
+                  console.log(associatedIds[i])
+                  const { latitude, longitude } = id2earthquake.get(associatedIds[i]).info.location
+                  var endPosiition = BLH2XYZ(longitude, latitude, this.earthRadius)
+                  lineGroup.add(this.addLine(startPosiition, endPosiition).lineMesh)
+                }
+              }
+            }
+          }
+          console.log(earthGroup)
         } else {
           this.tooltip.showDetails = false
           outlinePass.selectedObjects = []
@@ -388,8 +410,6 @@ export default {
 
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
-      // console.log(geometry)
-      console.log(texture)
       var starsMaterial = new THREE.PointsMaterial({
         map: texture,
         size: 15,
@@ -399,98 +419,14 @@ export default {
         blending: THREE.AdditiveBlending,
         sizeAttenuation: true
       })
-
-      // stars = new THREE.ParticleSystem( geometry, starsMaterial )
       stars = new THREE.Points(geometry, starsMaterial)
       stars.scale.set(6000, 6000, 6000)
-      console.log(stars)
-      // scene.add( stars )
+
       return stars
-    },
-    getVCenter (v1, v2) {
-      const v = v1.add(v2)
-      return v.divideScalar(2)
-    },
-    getLenVcetor (v1, v2, len) {
-      const v1v2Len = v1.distanceTo(v2)
-      return v1.lerp(v2, len / v1v2Len)
-    },
-    line_pos (lng, lat, radius) {
-      const phi = (180 + lng) * (Math.PI / 180)
-      const theta = (90 - lat) * (Math.PI / 180)
-      var pos = new THREE.Vector3(-radius * Math.sin(theta) * Math.cos(phi),
-        radius * Math.cos(theta),
-        radius * Math.sin(theta) * Math.sin(phi))
-      return pos
-    },
-    addLines (v0, v3) {
-    // 夹角
-      var angle = (v0.angleTo(v3) * 1.8) / Math.PI / 0.1 // 0 ~ Math.PI
-      var aLen = angle * 0.4; var hLen = angle * angle * 12
-      var p0 = new THREE.Vector3(0, 0, 0)
-      // 法线向量
-
-      // var rayLine = new THREE.Ray( p0, this.getVCenter( v0.clone(), v3.clone() ) );
-      // console.log(rayLine)
-      // // 顶点坐标
-      // var vtop = rayLine.at( hLen / rayLine.at(1).distanceTo(p0));
-
-      // // 控制点坐标
-      // var v1 = this.getLenVcetor( v0.clone(), vtop, aLen );
-      // var v2 = this.getLenVcetor( v3.clone(), vtop, aLen );
-      const angle2 = v0.angleTo(v3)
-      let vtop = v0.clone().add(v3)
-      vtop = vtop.normalize().multiplyScalar(100)
-      let n
-
-      if (angle <= 1) {
-        n = (this.earthRadius / 5) * angle
-      } else if (angle > 1 && angle < 2) {
-        n = (this.earthRadius / 5) * Math.pow(angle, 2)
-      } else {
-        n = (this.earthRadius / 5) * Math.pow(angle, 1.5)
-      }
-      var v1 = v0.clone().add(vtop).normalize().multiplyScalar(100 + n)
-      var v2 = v3.clone().add(vtop).normalize().multiplyScalar(100 + n)
-
-      // 绘制三维三次贝赛尔曲线
-      var curve = new THREE.CubicBezierCurve3(v0, v1, v2, v3)
-      var geometry = new LineGeometry()
-      var points = curve.getSpacedPoints(50)
-      var positions = []
-      var colors = []
-      var color = new THREE.Color()
-      /**
-       * HSL中使用渐变
-       * h — hue value between 0.0 and 1.0
-       * s — 饱和度 between 0.0 and 1.0
-       * l — 亮度 between 0.0 and 1.0
-       */
-
-      for (var j = 0; j < points.length; j++) {
-      // color.setHSL( .31666+j*0.005,0.7, 0.7); //绿色
-        color.setHSL(0.81666 + j, 0.88, 0.715 + j * 0.0025) // 粉色
-        colors.push(color.r, color.g, color.b)
-        positions.push(points[j].x, points[j].y, points[j].z)
-      }
-      geometry.setPositions(positions)
-      geometry.setColors(colors)
-      var matLine = new LineMaterial({
-        linewidth: 0.0006,
-        vertexColors: true,
-        dashed: false
-      })
-
-      return {
-        curve: curve,
-        lineMesh: new Line2(geometry, matLine)
-      }
     },
     initScene () {
       scene = new THREE.Scene()
       scene.background = new THREE.Color('#020924')
-      // this.initPoints()
-      // scene.fog = new THREE.Fog('#020924', 200, 1000)
       return scene
     },
     highlight (objlist) {
@@ -507,8 +443,21 @@ export default {
       return hightlightList
     },
     initEarthGroup () {
+      if (earthGroup) {
+        earthGroup.clear()
+        return earthGroup
+      }
       earthGroup = new THREE.Group()
       return earthGroup
+    },
+    initLineGroup () {
+      if (lineGroup) {
+        lineGroup.clear()
+        return lineGroup
+      } else {
+        lineGroup = new THREE.Group()
+        return lineGroup
+      }
     },
     initLightGroup () {
       lightGroup = new THREE.Group()
@@ -600,11 +549,14 @@ export default {
       const earthMesh = this.initEarth()
       scene.add(earthGroup)
       earthGroup.add(earthMesh)
+      const lineGroup = this.initLineGroup()
+      earthGroup.add(lineGroup)
       const quakeGroup = this.initQuakeGroup(this.earthquakeArray, this.earthRadius)
       earthGroup.add(quakeGroup)
       this.initComposer()
       this.initOutline()
     },
+
     waveSpread () {
       if (waveList) {
         wave_ratio += 0.007
@@ -624,6 +576,43 @@ export default {
             wave.scale.set(wave_ratio * wave._originscale, wave_ratio * wave._originscale, wave_ratio * wave._originscale)
           }
         )
+      }
+    },
+    VecfromXYZ (pos) {
+      const { x, y, z } = pos
+      return new THREE.Vector3(x, y, z)
+    },
+    addLine (sPos, tPos) {
+      var s = this.VecfromXYZ(sPos)
+      var t = this.VecfromXYZ(tPos)
+      var angle = s.angleTo(t)
+      var vtop = s.clone().add(t)
+      vtop = vtop.normalize().multiplyScalar(this.earthRadius)
+
+      var n
+
+      if (angle <= 1) {
+        n = this.earthRadius / 5 * angle
+      } else if (angle > 1 && angle < 2) {
+        n = this.earthRadius / 5 * Math.pow(angle, 2)
+      } else {
+        n = this.earthRadius / 5 * Math.pow(angle, 1.5)
+      }
+
+      var v1 = s.clone().add(vtop).normalize().multiplyScalar(this.earthRadius + n)
+      var v2 = t.clone().add(vtop).normalize().multiplyScalar(this.earthRadius + n)
+      var curve = new THREE.CubicBezierCurve3(s, v1, v2, t)
+      const geometry = new THREE.BufferGeometry()
+      var vertices = []
+      const points = curve.getPoints(50)
+      for (const point of points) {
+        vertices.push(point.x, point.y, point.z)
+      }
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+      var lineMesh = new THREE.Line(geometry, lineMaterial)
+      return {
+        curve: curve,
+        lineMesh: lineMesh
       }
     },
     getQuakeLabel (position, magnitude, radius = this.earthRadius) {
@@ -667,22 +656,22 @@ export default {
       } else {
         quakeGroup = new THREE.Group()
       }
+      if (id2earthquake) {
+        id2earthquake.clear()
+      } else {
+        id2earthquake = new Map()
+      }
       waveList = []
 
-      var lines
       for (var i = 0; i < earthQuakeArray.length; i++) {
         var lat = earthQuakeArray[i].location.latitude
         var lng = earthQuakeArray[i].location.longitude
+        // if (i === 0) {
+        //   var line = this.addLine(BLH2XYZ(lng, lat, this.earthRadius * 1.2), BLH2XYZ(lng, lat, this.earthRadius))
+        //   earthGroup.add(line.lineMesh)
+        // }
         var magnitude = earthQuakeArray[i].magnitude
         var position = BLH2XYZ(lng, lat, radius * 1.005)
-        var linePos = this.line_pos(lng, lat, radius * 1.005)
-        if (i == 0) {
-          begin = linePos
-        } else if (i < 100) {
-          console.log(begin)
-          console.log(linePos)
-        // lines = this.addLines(begin, linePos)
-        }
         const { label, lightCylinder, wave } = this.getQuakeLabel(position, magnitude)
         var earthquake = new THREE.Group()
         if (label) {
@@ -698,8 +687,7 @@ export default {
         earthquake.name = 'earthquake'
         earthquake.info = earthQuakeArray[i]
         quakeGroup.add(earthquake)
-      // console.log(lines)
-      // quakeGroup.add(lines)
+        id2earthquake.set(earthQuakeArray[i].id, earthquake)
       }
       return quakeGroup
     }

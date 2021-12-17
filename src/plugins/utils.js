@@ -21,7 +21,7 @@ function getEarthquakeRelations (clickId) {
   }
   for (var i = 0; i < earthquakeJson.length; i++) {
     if (earthquakeJson[i].tag === currentTag) {
-      showList.push(earthquakeJson[i])
+      showList.push(earthquakeJson[i].id)
     }
   }
   return showList
